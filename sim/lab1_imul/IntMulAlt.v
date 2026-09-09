@@ -42,21 +42,19 @@ module dpath (
   input logic b_mux_sel, // 1 when reset/idle
   input logic a_mux_sel, // 1 when reset/idle
   input logic result_mux_sel, // 1 when reset/idle
+  input logic result_en, // 0 when in DONE state, 1 when in CALC and IDLE state
   input logic reset,
   input logic clk,
   output logic [31:0] ostream_msg,
   output logic all_zero
 );
 
-  localparam result_en = 1;
-
   logic [31:0] a, b, b_mux_out, a_mux_out;
   logic [31:0] b_reg_q, a_reg_q, b_shift_out, a_shift_out,
                result_mux_out, result_reg_q, adder_out,
                add_mux_out;
   logic b_lsb, overflow_flag;
-  logic [4:0] count;
-  logic [5:0] shift_num;
+  logic [4:0] count, shift_num;
 
   // Don't use logic a = istream[31:0] For a logic variable, this is
   // initialization, not a continuously updated connection. It may only
@@ -182,7 +180,7 @@ module dpath (
     .out  (adder_out),
     .cout (overflow_flag)
   );
-  
+
   // When b_lbs is 0, just shift, no add (in0), if b_lsb is 1, perform add (in1)
   vc_Mux2
   #(
@@ -210,6 +208,7 @@ module FSMctl (
   output logic b_mux_sel,
   output logic a_mux_sel,
   output logic result_mux_sel,
+  output logic result_en,
   output logic istream_rdy,
   output logic ostream_val
 );
@@ -258,6 +257,7 @@ module FSMctl (
     result_mux_sel = 1;
     istream_rdy = 0;
     ostream_val = 0;
+    result_en = 1;
 
     case ( state )
       IDLE: begin
@@ -267,10 +267,13 @@ module FSMctl (
         istream_rdy = 0;
         b_mux_sel = 0;
         a_mux_sel = 0;
+        // will be 0 only during the first cycle of done! then go to 1 (default) afterwards
+        // can't hold data if consumer is not ready! consider give result_en a real enable that deasserted in DONE
         result_mux_sel = 0;
       end
       DONE: begin
         ostream_val = 1;
+        result_en = 0; // need to disable reg so that it can keep the current result until consumer accept it (switch to IDLE)
       end
       default: begin
         istream_rdy = 0;
@@ -300,7 +303,7 @@ module lab1_imul_IntMulAlt
   output logic [31:0] ostream_msg
 );
 
-  logic b_mux_sel_t, a_mux_sel_t, result_mux_sel_t, b_all_zero;
+  logic b_mux_sel_t, a_mux_sel_t, result_mux_sel_t, b_all_zero, result_en_t;
 
   FSMctl control
   (
@@ -312,6 +315,7 @@ module lab1_imul_IntMulAlt
     .b_mux_sel      (b_mux_sel_t),
     .a_mux_sel      (a_mux_sel_t),
     .result_mux_sel (result_mux_sel_t),
+    .result_en      (result_en_t),
     .istream_rdy    (istream_rdy),
     .ostream_val    (ostream_val)
   );
@@ -322,6 +326,7 @@ module lab1_imul_IntMulAlt
     .b_mux_sel      (b_mux_sel_t),
     .a_mux_sel      (a_mux_sel_t),
     .result_mux_sel (result_mux_sel_t),
+    .result_en      (result_en_t),
     .clk            (clk),
     .reset          (reset),
     .ostream_msg    (ostream_msg),

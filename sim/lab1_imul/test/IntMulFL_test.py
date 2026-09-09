@@ -213,10 +213,10 @@ test_case_table = mk_test_case_table([
   ["low_mask",          low_mask_msgs,          0,        0          ],
   ["middle_mask",       middle_mask_msgs,       0,        0          ],
 
-  ["zero_one_negone_d", zero_one_negone_msgs,   3,        2          ],
-  ["small_pos_neg_d",   small_pos_neg_msgs,     3,        2          ],
+  ["zero_one_negone_d", zero_one_negone_msgs,   3,        40          ],
+  ["small_pos_neg_d",   small_pos_neg_msgs,     3,        40          ],
   ["small_neg_neg_d",   small_neg_neg_msgs,     3,        0          ],
-  ["large_d",           large_msgs,             0,        2          ],
+  ["large_d",           large_msgs,             0,        40          ],
 ])
 
 #-------------------------------------------------------------------------
