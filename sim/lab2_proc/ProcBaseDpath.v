@@ -14,6 +14,7 @@
 `include "lab2_proc/tinyrv2_encoding.v"
 `include "lab2_proc/ProcDpathImmGen.v"
 `include "lab2_proc/ProcDpathAlu.v"
+`include "lab1_imul/IntMulAlt.v"
 
 module lab2_proc_ProcBaseDpath
 #(
@@ -52,6 +53,7 @@ module lab2_proc_ProcBaseDpath
 
   input  logic         reg_en_X,
   input  logic [3:0]   alu_fn_X,
+  input  logc  [1:0]   ex_result_sel_X, 
 
   input  logic         reg_en_M,
   input  logic         wb_result_sel_M,
@@ -251,6 +253,8 @@ module lab2_proc_ProcBaseDpath
 
   logic [31:0] alu_result_X;
   logic [31:0] ex_result_X;
+  logic [31:0] imul_result_X;
+  //logic [31:0] pc_incr_X;
 
   lab2_proc_ProcDpathAlu alu
   (
@@ -263,7 +267,16 @@ module lab2_proc_ProcBaseDpath
     .ops_ltu  ()
   );
 
-  assign ex_result_X = alu_result_X;
+
+
+  vc_Mux3#(32) ex_result_sel_mux_X
+  (
+    .in0  (),
+    .in1  (alu_result_X),
+    .in2  (imul_result_X),
+    .sel  (ex_result_sel_X),
+    .out  (ex_result_X)
+  );
 
   assign dmem_reqstream_msg_addr = alu_result_X;
 
