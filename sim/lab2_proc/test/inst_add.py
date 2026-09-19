@@ -152,6 +152,8 @@ def gen_random_test():
     src0 = b32( random.randint(0,0xffffffff) )
     src1 = b32( random.randint(0,0xffffffff) )
     dest = src0 + src1
+    # dest.uint() converts the already wrapped result into an unsigned Python integer 
+    # for the expected-output annotation. It does not recover the discarded carry
     asm_code.append( gen_rr_value_test( "add", src0.uint(), src1.uint(), dest.uint() ) )
   return asm_code
 

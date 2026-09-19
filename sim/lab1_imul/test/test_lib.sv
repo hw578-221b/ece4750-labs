@@ -15,7 +15,8 @@ module TestLib (
 logic passed, failed;
 int num_checks, num_test_case_passed, num_test_case_failed;
 
-int cycles;
+int cycles, seed;
+int all_cases, case_num;
 string vcd_name;
 
 // ------------------------------------------------------------
@@ -41,6 +42,22 @@ always @(posedge clk) begin
       cycles <= 0;
     else
       cycles <= cycles + 1;
+  end
+end
+
+//----------------------------------------------------------------------
+// CLI argument parsing
+//----------------------------------------------------------------------
+initial begin
+  all_cases = 0;
+  case_num = -1;
+
+  if(!$value$plusargs("test-case=%d", case_num))
+    all_cases = 1;
+
+  if($value$plusargs("vcd-name=%s", vcd_name)) begin
+    $dumpfile(vcd_name);
+    $dumpvars();
   end
 end
 
@@ -84,8 +101,44 @@ endtask
 // test_case_begin
 //----------------------------------------------------------------------
 task test_case_begin(
-  input  string case_name;
+  input string case_name;
 );
+
+  $write("%-40s", case_name);
+
+  if(!all_cases)
+    $write("");
+
+  passed = 1'd0;
+  failed = 1'd0;
+  num_checks = 0;
+  seed = 32'hdeadbeef;
+  
+  if(rst_type == 1'd0)
+    reset_dut_n();
+  else
+    reset_dut_p();
+endtask
+
+//----------------------------------------------------------------------
+// test_case_end
+//----------------------------------------------------------------------
+task test_case_end();
+
+  if(!failed && passed)
+    num_test_case_passed += 1;
+  else
+    num_test_case_failed += 1;
+  
+  // print brief results when testing all cases
+  if(all_cases) begin
+    if(!failed && passed)
+      $write(`GREEN, "passed", `RESET);
+    else
+      $write(`RED, "failed", `RESET);
+    
+    $write(" (%0d checked)\n", num_checks);
+  end
 
 endtask
 
@@ -95,7 +148,42 @@ endtask
 task test_bench_end();
   $display("");
   
-  
+  if(all_cases) begin
+    $display("num_test_case_passed = %0d", num_test_case_passed);
+    $display("num_test_case_failed = %0d", num_test_case_failed);
+  end
+  else begin
+    $write("\n");
+    if(!failed && passed)
+      $write(`GREEN, "passed", `RESET);
+    else
+      $write(`RED, "failed", `RESET);
+    $write(" (%0d checked)\n", num_checks);
+  end
+
 endtask
 
 endmodule
+
+// "display" is a string type variable
+// We use the !== operator so that Xs must also match exactly (support unknown-propagation tests)
+// The trailing if (1) allows the usual semicolon after the macro invocation to serve as an empty statement
+`define CHECK_EQUAL(inst_name, actual, expected, display)                             \
+  if(actual !== expected) begin                                                       \
+    inst_name.failed = 1;                                                             \
+    if(!inst_name.all_cases) begin                                                    \
+      if(display == "b")                                                              \
+        $display(`RED, "Error: ", `RESET, "In cycle: %0d, actual: %b, expected: %b",  \
+        inst_name.cycles, actual, expected);                                          \
+      else if(display == "h")                                                         \
+        $display(`RED, "Error: ", `RESET, "In cycle: %0d, actual: %h, expected: %h",  \
+        inst_name.cycles, actual, expected);                                          \
+      else if(display == "s")                                                         \
+        $display(`RED, "Error: ", `RESET, "In cycle: %0d, actual: %s, expected: %s",  \
+        inst_name.cycles, actual, expected);                                          \
+    end                                                                               \
+  end                                                                                 \
+  else begin                                                                          \
+    inst_name.passed = 1;                                                             \
+  end                                                                                 \
+  if (1)                                                                              \

@@ -37,7 +37,9 @@ class Tests:
   #-----------------------------------------------------------------------
   # add
   #-----------------------------------------------------------------------
-
+  
+  # asm_test() returns a tuple containing a shortened name and the generator function
+  # pytest runs test_add separately for each row, with the first value assigned to name and the second to test
   @pytest.mark.parametrize( "name,test", [
     asm_test( inst_add.gen_basic_test     ),
     asm_test( inst_add.gen_dest_dep_test  ),
@@ -48,6 +50,12 @@ class Tests:
     asm_test( inst_add.gen_value_test     ),
     asm_test( inst_add.gen_random_test    ),
   ])
+  # name is only used to provide a readable label in pytest’s test identifiers and failure reports
+  # run_test() only needs test, which is the generator function to perform simulation
+  # test is passed as a function object into run_test()
+  # s.__class__ gets that instance’s class
+  # .cmdline_opts reads the options stored on that class
+  # assgined with @pytest.mark.usefixtures("cmdline_opts")
   def test_add( s, name, test ):
     run_test( s.ProcType, test, cmdline_opts=s.__class__.cmdline_opts )
 

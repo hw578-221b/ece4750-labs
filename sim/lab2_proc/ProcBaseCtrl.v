@@ -159,13 +159,15 @@ module lab2_proc_ProcBaseCtrl
   logic [1:0] pc_sel_X;
 
   // PC select logic
-
   always_comb begin
     if ( pc_redirect_X )   // If a branch is taken in X stage
       pc_sel_F = pc_sel_X; // Use pc from X
     else
       pc_sel_F = 2'b0;     // Use pc+4
   end
+  // pc_sel_F = pc_sel_X is a combinational connection back to fetch
+  // not an instruction moving from X into F through another pipeline register
+  // An _X suffix means "associated with the X stage," not necessarily "a flip-flop output."
 
   // ostall due to the imem response not valid.
 
@@ -336,12 +338,13 @@ module lab2_proc_ProcBaseCtrl
 
       //                            br      imm   rs1 op2    rs2 alu      dmm wbmux rf
       //                       val  type    type   en muxsel  en fn       typ sel   wen csrr csrw
+      `TINYRV2_INST_CSRR    :cs( y, br_na,  imm_i, n, bm_csr, n, alu_cp1, nr, wm_a, y,  y,   n    );
+      `TINYRV2_INST_CSRW    :cs( y, br_na,  imm_i, y, bm_rf,  n, alu_cp0, nr, wm_a, n,  n,   y    );
       `TINYRV2_INST_NOP     :cs( y, br_na,  imm_x, n, bm_x,   n, alu_x,   nr, wm_a, n,  n,   n    );
       `TINYRV2_INST_ADD     :cs( y, br_na,  imm_x, y, bm_rf,  y, alu_add, nr, wm_a, y,  n,   n    );
       `TINYRV2_INST_LW      :cs( y, br_na,  imm_i, y, bm_imm, n, alu_add, ld, wm_m, y,  n,   n    );
       `TINYRV2_INST_BNE     :cs( y, br_bne, imm_b, y, bm_rf,  y, alu_x,   nr, wm_a, n,  n,   n    );
-      `TINYRV2_INST_CSRR    :cs( y, br_na,  imm_i, n, bm_csr, n, alu_cp1, nr, wm_a, y,  y,   n    );
-      `TINYRV2_INST_CSRW    :cs( y, br_na,  imm_i, y, bm_rf,  n, alu_cp0, nr, wm_a, n,  n,   y    );
+      `TINYRV2_INST_ADDI    :cs( y, br_na,  imm_i, y, bm_imm, n, alu_add, nr, wm_a, y,  n,   n    );
 
       //''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''
       // Add more instructions to the control signal table
