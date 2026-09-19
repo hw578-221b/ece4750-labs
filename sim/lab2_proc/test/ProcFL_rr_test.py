@@ -69,18 +69,21 @@ class Tests:
 
   @pytest.mark.parametrize( "name,test", [
     asm_test( inst_sub.gen_basic_test     ),
-
-    # ''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    # Add more rows to the test case table to test more complicated
-    # scenarios.
-    # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    asm_test( inst_sub.gen_dest_dep_test  ),
+    asm_test( inst_sub.gen_src0_dep_test  ),
+    asm_test( inst_sub.gen_src1_dep_test  ),
+    asm_test( inst_sub.gen_srcs_dep_test  ),
+    asm_test( inst_sub.gen_srcs_dest_test ),
+    asm_test( inst_sub.gen_value_test     ),
+    asm_test( inst_sub.gen_random_test    ),
   ])
   def test_sub( s, name, test ):
     run_test( s.ProcType, test, cmdline_opts=s.__class__.cmdline_opts )
 
-  # ''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  # random stall and delay
-  # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  def test_sub_delays( s ):
+      run_test( s.ProcType, inst_sub.gen_random_test, delays=True,
+                cmdline_opts=s.__class__.cmdline_opts )
+                
   #-----------------------------------------------------------------------
   # mul
   #-----------------------------------------------------------------------
