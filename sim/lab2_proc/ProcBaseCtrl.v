@@ -58,10 +58,16 @@ module lab2_proc_ProcBaseCtrl
   output logic        rf_wen_W,
   output logic        stats_en_wen_W,
 
+  output logic        imul_req_val_D,
+  output logic        imul_resp_rdy_X,
+
   // status signals (dpath->ctrl)
 
   input  logic [31:0] inst_D,
   input  logic        br_cond_eq_X,
+
+  input  logic        imul_req_rdy_D,
+  input  logic        imul_resp_val_X,
 
   // extra ports
 
@@ -394,6 +400,10 @@ module lab2_proc_ProcBaseCtrl
 
   assign mngr2proc_rdy = val_D && !stall_D && mngr2proc_rdy_D;
 
+  //****************************************************************************************
+  // originating stall if mngr2proc's output-stream is ready but didn't have a valid request
+  // val_D not necessary here, as it's included in the final stall signal
+  //****************************************************************************************
   logic  ostall_mngr2proc_D;
   assign ostall_mngr2proc_D = val_D && mngr2proc_rdy_D && !mngr2proc_val;
 
@@ -439,28 +449,51 @@ module lab2_proc_ProcBaseCtrl
     = rs2_en_D && val_W && rf_wen_W
       && ( inst_rs2_D == rf_waddr_W ) && ( rf_waddr_W != 5'd0 );
 
-  // Put together ostall signal due to hazards
+  // Don't use inst_D == TINYRV2_INST_MUL, because The macro contains ? bits
+  // "== does not perform wildcard decoding, so that equality can produce X even if inst is MUL
+  logic  is_mul_D;
+  assign is_mul_D = (ex_result_sel_D == xm_im);
 
+  // ostall if inst is MUL and imul module input-stream is not ready and have valid request
+  logic  ostall_imul_D;
+  assign ostall_imul_D = is_mul_D && !imul_req_rdy_D && imul_req_val_D;
+
+  // set imul input-stream have valid request when inst is MUL and D stage is valid
+  // and D not stalled and squashed
+  // For squahsh, a taken branch in X could squash a younger MUL in D while that MUL still sends a request
+
+  // Don't use stall_D here (not exclude imul stall)! If you do, valid will depend on ostall_imul_D
+  // then depend on ready (imul_req_rdy_D), which is very bad practice!
+  // That + remove imul_req_val_D in ostall_imul_D can work for this specific case because the multiplier 
+  // becomes ready independently of valid. It is not a pattern to assume safe with every receiver!
+
+  // And if you include valid signal in ostall_imul_D, it will create combinational loop:
+  // mulitplier busy -> ostall -> request invalid -> no stall -> request valid
+  // -> mulitplier busy -> ostall (dependency loop) 
+  logic stall_other_D;
+  assign imul_req_val_D = val_D && !stall_other_D && !squash_D && is_mul_D;
+
+  // Put together ostall signal due to hazards
   logic  ostall_hazard_D;
   assign ostall_hazard_D =
       ostall_waddr_X_rs1_D || ostall_waddr_M_rs1_D || ostall_waddr_W_rs1_D ||
       ostall_waddr_X_rs2_D || ostall_waddr_M_rs2_D || ostall_waddr_W_rs2_D;
 
   // Final ostall signal
-
-  assign ostall_D = val_D && ( ostall_mngr2proc_D || ostall_hazard_D );
+  assign ostall_D = val_D && ( ostall_mngr2proc_D || ostall_hazard_D || ostall_imul_D);
 
   // osquash due to jump instruction in D stage (not implemented yet)
-
   assign osquash_D = 1'b0;
 
   // stall and squash in D
-
   assign stall_D  = val_D && ( ostall_D || ostall_X || ostall_M || ostall_W );
   assign squash_D = val_D && osquash_X;
 
-  // Valid signal for the next stage
+  // For val/rdy interface of imul
+  assign stall_other_D = val_D && (ostall_mngr2proc_D || ostall_hazard_D) 
+      || (ostall_X || ostall_M || ostall_W);
 
+  // Valid signal for the next stage
   logic  next_val_D;
   assign next_val_D = val_D && !stall_D && !squash_D;
 
@@ -514,25 +547,40 @@ module lab2_proc_ProcBaseCtrl
     end
   end
 
-  // ostall due to dmem_reqstream not ready.
+  // set imul resp stream ready if inst is mul and stage not stalled
+  // There is no way to squash the X stage so we don't need to worry about that situation
+  logic stall_other_X;
+  assign imul_resp_rdy_X = val_X && (ex_result_sel_X == xm_im) && !stall_other_X;
 
-  assign ostall_X = val_X && ( dmem_type_X != nr ) && !dmem_reqstream_rdy;
+  // ostall when inst is mul and imul doesn't have valid output but X stage ready to have results
+  logic ostall_X_imul;
+  assign ostall_X_imul = val_X && (ex_result_sel_X == xm_im) && !imul_resp_val_X && imul_resp_rdy_X;
+
+  // ostall due to dmem_reqstream not ready.
+  logic ostall_X_dmem;
+  assign ostall_X_dmem = val_X && ( dmem_type_X != nr ) && !dmem_reqstream_rdy;
+
+  assign ostall_X = ostall_X_dmem || ostall_X_imul;
 
   // osquash due to taken branch, notice we can't osquash if current
-  // stage stalls, otherwise we will send osquash twice.
-
+  // stage stalls, otherwise we will send osquash multiple times
+  // The first squash should discard the old, wrong-path response. A later squash can discard 
+  // a response for the correct branch target that the first squash just requested.
+  // Now it only sent once because val_X will be 0 next cycle due to next_val_D = val_D && !stall_D && !squash_D;
   assign osquash_X = val_X && !stall_X && pc_redirect_X;
 
-  // stall and squash used in X stage
-
+  // stall used in X stage
   assign stall_X = val_X && ( ostall_X || ostall_M || ostall_W );
+  
+  // For imul ostream rdy/val interface
+  assign stall_other_X = val_X && ( ostall_X_dmem || ostall_M || ostall_W );
 
   // set dmem_reqstream_val only if not stalling
-
   assign dmem_reqstream_val = val_X && !stall_X && ( dmem_type_X != nr );
 
   // Valid signal for the next stage
-
+  // X generates the branch squash, but X itself is not squashed (BNE need to complete rest of the stages)
+  // Only the younger instructions in D and F are discarded.
   logic  next_val_X;
   assign next_val_X = val_X && !stall_X;
 

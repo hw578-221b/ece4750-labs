@@ -53,9 +53,9 @@ module lab2_proc_ProcBaseDpath
 
   input  logic         reg_en_X,
   input  logic [3:0]   alu_fn_X,
-  input  logc  [1:0]   ex_result_sel_X, 
 
   input  logic         reg_en_M,
+  input  logic [1:0]   ex_result_sel_X, 
   input  logic         wb_result_sel_M,
 
   input  logic         reg_en_W,
@@ -63,10 +63,16 @@ module lab2_proc_ProcBaseDpath
   input  logic         rf_wen_W,
   input  logic         stats_en_wen_W,
 
+  input  logic         imul_req_val_D,
+  input  logic         imul_resp_rdy_X,
+
   // status signals (dpath->ctrl)
 
   output logic [31:0]  inst_D,
   output logic         br_cond_eq_X,
+
+  output logic         imul_req_rdy_D,
+  output logic         imul_resp_val_X,
 
   // extra ports
 
@@ -267,11 +273,21 @@ module lab2_proc_ProcBaseDpath
     .ops_ltu  ()
   );
 
-
+  lab1_imul_IntMulAlt imul
+  (
+    .clk(clk),
+    .reset(reset),
+    .istream_val(imul_req_val_D),
+    .istream_rdy(imul_req_rdy_D),
+    .istream_msg({rf_rdata0_D, op2_D}),
+    .ostream_val(imul_resp_val_X),
+    .ostream_rdy(imul_resp_rdy_X),
+    .ostream_msg(imul_result_X)
+  );
 
   vc_Mux3#(32) ex_result_sel_mux_X
   (
-    .in0  (),
+    .in0  (),   // connect !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     .in1  (alu_result_X),
     .in2  (imul_result_X),
     .sel  (ex_result_sel_X),

@@ -171,6 +171,7 @@ def gen_rr_dest_dep_test( num_nops, inst, src0, src1, result ):
                                 inst, src0, src1, result )
 
 # dep means "dependency", this implementation handles register dependencies by stalling
+
 # operand bypass paths like X→D, M→D, and W→D to handle register dependencies
 # are not implemented in this design
 

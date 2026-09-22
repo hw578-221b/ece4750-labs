@@ -199,17 +199,22 @@ module lab2_proc_ProcBase
   logic [3:0]  alu_fn_X;
 
   logic        reg_en_M;
+  logic [1:0]  ex_result_sel_X;
   logic        wb_result_sel_M;
 
   logic        reg_en_W;
   logic [4:0]  rf_waddr_W;
   logic        rf_wen_W;
   logic        stats_en_wen_W;
+  logic        imul_req_val_D;
+  logic        imul_resp_rdy_X;
 
   // status signals (dpath->ctrl)
 
   logic [31:0] inst_D;
   logic        br_cond_eq_X;
+  logic        imul_req_rdy_D;
+  logic        imul_resp_val_X;
 
   //----------------------------------------------------------------------
   // Control Unit

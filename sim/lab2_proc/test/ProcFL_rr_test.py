@@ -39,7 +39,8 @@ class Tests:
   #-----------------------------------------------------------------------
   
   # asm_test() returns a tuple containing a shortened name and the generator function
-  # pytest runs test_add separately for each row, with the first value assigned to name and the second to test
+  # "name,test" tells pytest to create two test parameters named name and test (format of list)
+  # pytest runs test_add for each row, with the first value assigned to name and the second to test
   @pytest.mark.parametrize( "name,test", [
     asm_test( inst_add.gen_basic_test     ),
     asm_test( inst_add.gen_dest_dep_test  ),
@@ -50,7 +51,7 @@ class Tests:
     asm_test( inst_add.gen_value_test     ),
     asm_test( inst_add.gen_random_test    ),
   ])
-  # name is only used to provide a readable label in pytest’s test identifiers and failure reports
+  # name is used to provide a readable label in pytest’s test identifiers and failure reports
   # run_test() only needs test, which is the generator function to perform simulation
   # test is passed as a function object into run_test()
   # s.__class__ gets that instance’s class
@@ -90,14 +91,20 @@ class Tests:
 
   @pytest.mark.parametrize( "name,test", [
     asm_test( inst_mul.gen_basic_test     ),
-
-    # ''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    # Add more rows to the test case table to test more complicated
-    # scenarios.
-    # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    asm_test( inst_mul.gen_dest_dep_test  ),
+    asm_test( inst_mul.gen_src0_dep_test  ),
+    asm_test( inst_mul.gen_src1_dep_test  ),
+    asm_test( inst_mul.gen_srcs_dep_test  ),
+    asm_test( inst_mul.gen_srcs_dest_test ),
+    asm_test( inst_mul.gen_value_test     ),
+    asm_test( inst_mul.gen_random_test    ),
   ])
   def test_mul( s, name, test ):
     run_test( s.ProcType, test, cmdline_opts=s.__class__.cmdline_opts )
+
+  def test_mul_delays( s ):
+        run_test( s.ProcType, inst_mul.gen_random_test, delays=True,
+                  cmdline_opts=s.__class__.cmdline_opts )
 
   # ''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''''
   # random stall and delay
