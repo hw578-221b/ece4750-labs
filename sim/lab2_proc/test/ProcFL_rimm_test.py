@@ -152,16 +152,14 @@ class Tests:
 
   @pytest.mark.parametrize( "name,test", [
     asm_test( inst_auipc.gen_basic_test    ) ,
-
-    # ''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    # Add more rows to the test case table to test more complicated
-    # scenarios.
-    # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    asm_test( inst_auipc.gen_dest_dep_test  ) ,
+    asm_test( inst_auipc.gen_value_test     ) ,
+    asm_test( inst_auipc.gen_random_test    ) ,
   ])
   def test_auipc( s, name, test ):
     run_test( s.ProcType, test, cmdline_opts=s.__class__.cmdline_opts )
 
-  # ''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  # random stall and delay
-  # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  def test_auipc_delay ( s ):
+    run_test(s.ProcType, inst_auipc.gen_random_test, delays=True,
+              cmdline_opts=s.__class__.cmdline_opts)
 

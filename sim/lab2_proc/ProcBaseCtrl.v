@@ -42,6 +42,7 @@ module lab2_proc_ProcBaseCtrl
   output logic [1:0]  pc_sel_F,
 
   output logic        reg_en_D,
+  output logic        op1_sel_D,
   output logic [1:0]  op2_sel_D,
   output logic [1:0]  csrr_sel_D,
   output logic [2:0]  imm_type_D,
@@ -255,6 +256,12 @@ module lab2_proc_ProcBaseCtrl
   localparam br_na    = 3'b0; // No branch
   localparam br_bne   = 3'b1; // bne
 
+  // Operand 0 Mux Select
+
+  localparam am_x     = 1'bx; // Don't care
+  localparam am_pc    = 1'd0; // Use data from pc
+  localparam am_rf    = 1'd1; // Use data from register file
+
   // Operand 1 Mux Select
 
   localparam bm_x     = 2'bx; // Don't care
@@ -319,6 +326,7 @@ module lab2_proc_ProcBaseCtrl
     input logic [2:0] cs_br_type,
     input logic [2:0] cs_imm_type,
     input logic       cs_rs1_en,
+    input logic       cs_op1_sel,
     input logic [1:0] cs_op2_sel,
     input logic       cs_rs2_en,
     input logic [3:0] cs_alu_fn,
@@ -334,6 +342,7 @@ module lab2_proc_ProcBaseCtrl
     br_type_D       = cs_br_type;
     imm_type_D      = cs_imm_type;
     rs1_en_D        = cs_rs1_en;
+    op1_sel_D       = cs_op1_sel;
     op2_sel_D       = cs_op2_sel;
     rs2_en_D        = cs_rs2_en;
     alu_fn_D        = cs_alu_fn;
@@ -347,28 +356,26 @@ module lab2_proc_ProcBaseCtrl
   endtask
 
   // Control signals table
-
   always_comb begin
-
     casez ( inst_D )
-
-      //                            br      imm   rs1 op2    rs2 alu      exmux  dmm wbmux rf
-      //                        val type    type   en muxsel  en fn       sel    typ sel   wen csrr csrw
-      `TINYRV2_INST_CSRR    :cs( y, br_na,  imm_i, n, bm_csr, n, alu_cp1, xm_a,  nr, wm_a, y,  y,   n    );
-      `TINYRV2_INST_CSRW    :cs( y, br_na,  imm_i, y, bm_rf,  n, alu_cp0, xm_a,  nr, wm_a, n,  n,   y    );
-      `TINYRV2_INST_NOP     :cs( y, br_na,  imm_x, n, bm_x,   n, alu_x,   xm_a,  nr, wm_a, n,  n,   n    );
-      `TINYRV2_INST_ADD     :cs( y, br_na,  imm_x, y, bm_rf,  y, alu_add, xm_a,  nr, wm_a, y,  n,   n    );
-      `TINYRV2_INST_SUB     :cs( y, br_na,  imm_x, y, bm_rf,  y, alu_sub, xm_a,  nr, wm_a, y,  n,   n    );
-      `TINYRV2_INST_MUL     :cs( y, br_na,  imm_x, y, bm_rf,  y, alu_x,   xm_im, nr, wm_a, y,  n,   n    );
-      `TINYRV2_INST_LW      :cs( y, br_na,  imm_i, y, bm_imm, n, alu_add, xm_a,  ld, wm_m, y,  n,   n    );
-      `TINYRV2_INST_BNE     :cs( y, br_bne, imm_b, y, bm_rf,  y, alu_x,   xm_a,  nr, wm_a, n,  n,   n    );
-      `TINYRV2_INST_ADDI    :cs( y, br_na,  imm_i, y, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n    );
+      //                            br      imm   rs1 op1    op2    rs2 alu      exmux  dmm wbmux rf
+      //                        val type    type   en muxsel muxsel  en fn       sel    typ sel   wen csrr csrw
+      `TINYRV2_INST_CSRR    :cs( y, br_na,  imm_i, n, am_rf, bm_csr, n, alu_cp1, xm_a,  nr, wm_a, y,  y,   n    );
+      `TINYRV2_INST_CSRW    :cs( y, br_na,  imm_i, y, am_rf, bm_rf,  n, alu_cp0, xm_a,  nr, wm_a, n,  n,   y    );
+      `TINYRV2_INST_NOP     :cs( y, br_na,  imm_x, n, am_x,  bm_x,   n, alu_x,   xm_a,  nr, wm_a, n,  n,   n    );
+      `TINYRV2_INST_ADD     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_add, xm_a,  nr, wm_a, y,  n,   n    );
+      `TINYRV2_INST_SUB     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_sub, xm_a,  nr, wm_a, y,  n,   n    );
+      `TINYRV2_INST_MUL     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_x,   xm_im, nr, wm_a, y,  n,   n    );
+      `TINYRV2_INST_LW      :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_add, xm_a,  ld, wm_m, y,  n,   n    );
+      `TINYRV2_INST_BNE     :cs( y, br_bne, imm_b, y, am_rf, bm_rf,  y, alu_x,   xm_a,  nr, wm_a, n,  n,   n    );
+      `TINYRV2_INST_ADDI    :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n    );
+      `TINYRV2_INST_AUIPC   :cs( y, br_na,  imm_u, n, am_pc, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n    );
 
       //''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''
       // Add more instructions to the control signal table
       //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-      default               :cs( n, br_x,   imm_x, n, bm_x,   n, alu_x,   xm_a,  nr, wm_x, n,  n,   n    );
+      default               :cs( n, br_x,   imm_x, n, am_x,  bm_x,   n, alu_x,   xm_a,  nr, wm_x, n,  n,   n    );
 
     endcase
   end // always_comb
