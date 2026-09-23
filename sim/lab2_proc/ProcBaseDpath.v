@@ -237,6 +237,17 @@ module lab2_proc_ProcBaseDpath
   // X stage
   //--------------------------------------------------------------------
 
+  logic [31:0] pc_X;
+
+  vc_EnResetReg#(32) pc_reg_X
+  (
+    .clk    (clk),
+    .reset  (reset),
+    .en     (reg_en_X),
+    .d      (pc_D),
+    .q      (pc_X)
+  );
+
   logic [31:0] op1_X;
   logic [31:0] op2_X;
 
@@ -267,10 +278,18 @@ module lab2_proc_ProcBaseDpath
     .q     (br_target_X)
   );
 
+  logic [31:0] pc_plus4_X;
+
+  vc_Incrementer#(32, 4) pc_incr_X
+  (
+    .in   (pc_X),
+    .out  (pc_plus4_X)
+  );
+
+
   logic [31:0] alu_result_X;
   logic [31:0] ex_result_X;
   logic [31:0] imul_result_X;
-  //logic [31:0] pc_incr_X;
 
   lab2_proc_ProcDpathAlu alu
   (
@@ -297,7 +316,7 @@ module lab2_proc_ProcBaseDpath
 
   vc_Mux3#(32) ex_result_sel_mux_X
   (
-    .in0  (),   // connect !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    .in0  (pc_plus4_X),
     .in1  (alu_result_X),
     .in2  (imul_result_X),
     .sel  (ex_result_sel_X),

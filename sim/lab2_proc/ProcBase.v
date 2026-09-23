@@ -104,7 +104,7 @@ module lab2_proc_ProcBase
   // Imem Drop Unit
   //----------------------------------------------------------------------
 
-  logic         imem_respstream_drop;
+  logic         imem_respstream_drop;   // auto connect to imem_respstream_drop output of ProcBaseCtrl by .*
   mem_resp_4B_t imem_respstream_drop_msg;
   logic         imem_respstream_drop_val;
   logic         imem_respstream_drop_rdy;

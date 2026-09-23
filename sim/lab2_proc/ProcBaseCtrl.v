@@ -150,10 +150,10 @@ module lab2_proc_ProcBaseCtrl
 
   // Register enable logic
 
-  assign reg_en_F = !stall_F || squash_F;
+  assign reg_en_F = !stall_F || squash_F; // why || squash_F ??????????????????????????????????????????????????
 
   // Pipeline registers
-
+  // val_F no assignment when not in reset and !reg_en_F, like when stalled ????????????????????????????????
   always_ff @( posedge clk ) begin
     if ( reset )
       val_F <= 1'b0;
@@ -164,14 +164,18 @@ module lab2_proc_ProcBaseCtrl
   // forward declaration for PC sel
 
   logic       pc_redirect_X;
+  logic       pc_redirect_D;
   logic [1:0] pc_sel_X;
+  logic [1:0] pc_sel_D;
 
   // PC select logic
   always_comb begin
-    if ( pc_redirect_X )   // If a branch is taken in X stage
-      pc_sel_F = pc_sel_X; // Use pc from X
+    if ( pc_redirect_D )       // If a jump happens in D stage
+      pc_sel_F = pc_sel_D;     // Use pc from D stage
+    else if ( pc_redirect_X )  // If a branch is taken in X stage
+      pc_sel_F = pc_sel_X;     // Use pc from X stage
     else
-      pc_sel_F = 2'b0;     // Use pc+4
+      pc_sel_F = 2'b0;         // Use pc+4 for default
   end
   // pc_sel_F = pc_sel_X is a combinational connection back to fetch
   // not an instruction moving from X into F through another pipeline register
@@ -186,7 +190,7 @@ module lab2_proc_ProcBaseCtrl
   assign stall_F  = val_F && ( ostall_F  || ostall_D || ostall_X || ostall_M || ostall_W );
   assign squash_F = val_F && ( osquash_D || osquash_X );
 
-  // We drop the mem response when we are getting squashed
+  // We drop the imem response when we are getting squashed
 
   assign imem_respstream_drop = squash_F;
 
@@ -276,6 +280,7 @@ module lab2_proc_ProcBaseCtrl
   localparam alu_sub  = 4'd1;
   localparam alu_cp0  = 4'd11;
   localparam alu_cp1  = 4'd12;
+  localparam alu_jalr = 4'd13;
 
   // Immediate Type
   localparam imm_x    = 3'bx;
@@ -370,6 +375,7 @@ module lab2_proc_ProcBaseCtrl
       `TINYRV2_INST_BNE     :cs( y, br_bne, imm_b, y, am_rf, bm_rf,  y, alu_x,   xm_a,  nr, wm_a, n,  n,   n    );
       `TINYRV2_INST_ADDI    :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n    );
       `TINYRV2_INST_AUIPC   :cs( y, br_na,  imm_u, n, am_pc, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n    );
+      `TINYRV2_INST_JAL     :cs( y, br_na,  imm_j, n, am_x,  bm_x,   n, alu_add, xm_pc, nr, wm_a, y,  n,   n    );
 
       //''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''
       // Add more instructions to the control signal table
@@ -401,6 +407,18 @@ module lab2_proc_ProcBaseCtrl
       csrr_sel_D       = 2'h1;
     if ( csrr_D && inst_csr_D == `TINYRV2_CPR_COREID )
       csrr_sel_D       = 2'h2;
+  end
+
+  // jump logic, redirect PC in F if there is a jump
+  always_comb begin
+    if( val_D && (ex_result_sel_D == xm_pc) && (alu_fn_D != alu_jalr)) begin
+      pc_redirect_D = 1'd1; // execute jump
+      pc_sel_D = 2'd2;      // use jal target (pc+imm)
+    end
+    else begin
+      pc_redirect_D = 1'd0; // no jump
+      pc_sel_D = 2'd0;      // default value, won't be selected anyway by pc_sel_F when !pc_redirect_D
+    end
   end
 
   // mngr2proc_rdy signal for csrr instruction
@@ -489,8 +507,8 @@ module lab2_proc_ProcBaseCtrl
   // Final ostall signal
   assign ostall_D = val_D && ( ostall_mngr2proc_D || ostall_hazard_D || ostall_imul_D);
 
-  // osquash due to jump instruction in D stage (not implemented yet)
-  assign osquash_D = 1'b0;
+  // osquash due to jump instruction in D stage (in order to drop the imem_resp data and doesn't perform inst decode)
+  assign osquash_D = val_D && (ex_result_sel_D == xm_pc);
 
   // stall and squash in D
   assign stall_D  = val_D && ( ostall_D || ostall_X || ostall_M || ostall_W );
@@ -545,12 +563,12 @@ module lab2_proc_ProcBaseCtrl
 
   always_comb begin
     if ( val_X && ( br_type_X == br_bne ) ) begin
-      pc_redirect_X = !br_cond_eq_X;
-      pc_sel_X      = 2'b1; // use branch target
+      pc_redirect_X = !br_cond_eq_X;  // br_cond_eq_X should be 0 when branch taken (redirect), 1 when branch not taken (continue)
+      pc_sel_X      = 2'b1;           // use branch target (PC+imm) when pc_redirect_X == 1
     end
     else begin
-      pc_redirect_X = 1'b0;
-      pc_sel_X      = 2'b0; // use pc+4
+      pc_redirect_X = 1'b0;           
+      pc_sel_X      = 2'b0;           // default value, won't be selected anyway by pc_sel_F when !pc_redirect_X
     end
   end
 
@@ -571,10 +589,14 @@ module lab2_proc_ProcBaseCtrl
 
   // osquash due to taken branch, notice we can't osquash if current
   // stage stalls, otherwise we will send osquash multiple times
+  // pc_redirect_X can remain high/unchanged since reg_en_X being 0 due to stalling
   // The first squash should discard the old, wrong-path response. A later squash can discard 
   // a response for the correct branch target that the first squash just requested.
-  // Now it only sent once because val_X will be 0 next cycle due to next_val_D = val_D && !stall_D && !squash_D;
+  // Now osquash only sent once because val_X will be 0 next cycle due to next_val_D = val_D && !stall_D && !squash_D;
   assign osquash_X = val_X && !stall_X && pc_redirect_X;
+
+  // osquash due to jalr PC jump in X stage!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // assign osquash_X_jalr = val_X && !stall_X && (ex_result_sel_X == xm_pc) && (alu_fn_X == alu_jalr);
 
   // stall used in X stage
   assign stall_X = val_X && ( ostall_X || ostall_M || ostall_W );
