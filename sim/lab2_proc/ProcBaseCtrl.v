@@ -150,10 +150,10 @@ module lab2_proc_ProcBaseCtrl
 
   // Register enable logic
 
-  assign reg_en_F = !stall_F || squash_F; // why || squash_F ??????????????????????????????????????????????????
+  assign reg_en_F = !stall_F || squash_F; // why || squash_F ????????????????????????????????????????????????????????????????????????????????
 
   // Pipeline registers
-  // val_F no assignment when not in reset and !reg_en_F, like when stalled ????????????????????????????????
+  // val_F no assignment when not in reset and !reg_en_F, like when stalled ????????????????????????????????????????????????????????????????????????????????
   always_ff @( posedge clk ) begin
     if ( reset )
       val_F <= 1'b0;
@@ -297,7 +297,7 @@ module lab2_proc_ProcBaseCtrl
   localparam st       = 2'd2; // Store
 
   // Execution Mux Select
-  localparam xm_x       = 2'bx; // Don't care
+  localparam xm_x       = 2'dx; // Don't care
   localparam xm_pc      = 2'd0; // Use pc + 4 
   localparam xm_a       = 2'd1; // Use ALU output
   localparam xm_im      = 2'd2; // Use imul output
@@ -411,15 +411,21 @@ module lab2_proc_ProcBaseCtrl
       csrr_sel_D       = 2'h2;
   end
 
-  // jump logic, redirect PC in F if there is a jump
+  // PC select logic, redirect PC in F if there is a jump (jal), and D is not squashed adn not stalled
+
+  // if D squashed, means a previous inst (now in X stage) trigger a jump, and 
+  // !squash_D suppress this redirect, allowing previous inst's redirect to win
+  // which ensure jump happen following the program order (like BNE followed by JAL)
+  // adding && !stall is optional, without it will make jal_target_D remain selected during stall
+  // but that result doesn't get latched as reg_en_F is 0 during stall
   always_comb begin
-    if( val_D && (ex_result_sel_D == xm_pc) && (alu_fn_D != alu_jalr)) begin
+    if( val_D && is_jal_D && !squash_D && !stall_D) begin
       pc_redirect_D = 1'd1;     // execute jump
-      pc_sel_D = 2'd2;      // use jal target (pc+imm)
+      pc_sel_D = 2'd2;          // use jal target (pc+imm)
     end
     else begin
       pc_redirect_D = 1'd0;     // no jump
-      pc_sel_D = 2'd0;      // default value, won't be selected anyway by pc_sel_F when !pc_redirect_D
+      pc_sel_D = 2'd0;          // default value, won't be selected anyway by pc_sel_F when !pc_redirect_D
     end
   end
 
@@ -509,8 +515,14 @@ module lab2_proc_ProcBaseCtrl
   // Final ostall signal
   assign ostall_D = val_D && ( ostall_mngr2proc_D || ostall_hazard_D || ostall_imul_D);
 
+  // ==? is a synthesizable SystemVerilog operator, ignoring the positions containing ? in the right-hand operand
+  // identity comparisons (=== or !==) does not treat ? as a wildcard. It compares x and z and it's not synthesizable
+  logic is_jal_D;
+  assign is_jal_D = (inst_D ==? `TINYRV2_INST_JAL);
+
   // osquash due to PC jump instruction (jal) in D stage (in order to drop the imem_resp data and doesn't perform inst decode)
-  assign osquash_D = val_D && (ex_result_sel_D == xm_pc) && (alu_fn_D != alu_jalr);
+  // also we can't squash when stalled!
+  assign osquash_D = val_D && !stall_D && is_jal_D;
 
   // stall and squash in D
   assign stall_D  = val_D && ( ostall_D || ostall_X || ostall_M || ostall_W );
@@ -522,6 +534,10 @@ module lab2_proc_ProcBaseCtrl
 
   // Valid signal for the next stage
   logic  next_val_D;
+  // !stall_D is needed here to prevent the ostalled inst in current stage to go to next unstalled stage!!!
+  // if this stage is not the ostall stage, then !stall is not necessary as the next stage is also stalled
+  // and will have reg_en = 0, not capturing the next_val from previous stage, but we don't know if this
+  // stage is the ostall or stalled stage, so this !stall is needed for every stage's next_val
   assign next_val_D = val_D && !stall_D && !squash_D;
 
   //----------------------------------------------------------------------
@@ -561,15 +577,17 @@ module lab2_proc_ProcBaseCtrl
       br_type_X       <= br_type_D;
     end
 
-  // PC select logic
+  // PC select logic in X stage
+  // no "&& !squash_X" as X stage not got squashed, it only originate squash
+  // "&& !stall_X" is optional, same reason with PC select logic in D stage
   always_comb begin
     // branch logic, redirect PC in F if branch is taken
-    if ( val_X && ( br_type_X == br_bne ) ) begin
+    if ( val_X && ( br_type_X == br_bne ) && !stall_X) begin
       pc_redirect_X = !br_cond_eq_X;  // br_cond_eq_X should be 0 when branch taken (redirect), 1 when branch not taken (continue)
       pc_sel_X      = 2'd1;           // use branch target (PC+imm) when pc_redirect_X == 1
     end
     // jump logic, redirect PC in F if inst is jalr
-    else if ( val_X && (ex_result_sel_X == xm_pc) && (alu_fn_X == alu_jalr)) begin
+    else if ( val_X && (ex_result_sel_X == xm_pc) && (alu_fn_X == alu_jalr) && !stall_X) begin
       pc_redirect_X = 1'd1;
       pc_sel_X      = 2'd3;
     end
@@ -595,12 +613,14 @@ module lab2_proc_ProcBaseCtrl
 
   assign ostall_X = ostall_X_dmem || ostall_X_imul;
 
-  // osquash due to taken branch, notice we can't osquash if current
-  // stage stalls, otherwise we will send osquash multiple times
-  // pc_redirect_X can remain high/unchanged since reg_en_X being 0 due to stalling
-  // The first squash should discard the old, wrong-path response. A later squash can discard 
+  // osquash due to taken branch
+  // notice we can't osquash if current stage stalls, otherwise we will send osquash multiple times
+  // pc_redirect_X and val_X can remain 1/unchanged since reg_en_X being 0 due to stalling
+  // The first squash should discard the old, wrong-path response (in F stage). A later squash can discard 
   // a response for the correct branch target that the first squash just requested.
-  // Now osquash only sent once because val_X will be 0 next cycle due to next_val_D = val_D && !stall_D && !squash_D;
+  // with !stall, osquash only sent once because after stall ends, all signals will be high at following
+  // clock edge, but pc_redirected_x will be low the next clock edge, as br_type_X's value is replaced by 
+  // br_type_D at that time
   logic osquash_X_bne;
   assign osquash_X_bne = val_X && !stall_X && pc_redirect_X;
 

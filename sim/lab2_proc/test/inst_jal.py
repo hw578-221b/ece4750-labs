@@ -134,6 +134,34 @@ def gen_fulljump_test():
     csrw  proc2mngr, x7 > 0x00000238
   """
 
+def gen_bne_with_jal_test():
+  return """
+
+    # Use x3 to track the control flow pattern
+    addi  x3, x0, 0          # 0x00000200
+    # Use x5 to track if jal happens
+    addi  x5, x0, 0          # 0x00000204
+    csrr  x2, mngr2proc < 1  # 0x00000208
+    csrr  x4, mngr2proc < 2  # 0x0000020c
+
+    # label_c branch should be taken, not label_b
+    bne   x2, x4, label_c    # 0x00000210
+    jal   x1, label_b        # 0x00000214
+    addi  x3, x3, 0b000001   # 0x00000218
+                             #
+  label_b:                   #
+    addi  x3, x3, 0b000010   # 0x0000021c
+    addi  x5, x1, 0          # 0x00000220
+                             #
+  label_c:                   #
+    addi  x3, x3, 0b100000   # 0x00000224
+
+    csrw  proc2mngr, x3 > 0b100000
+
+    # Check the link addresses (shouldn't be 0x00000218)
+    csrw  proc2mngr, x5 > 0 
+  """
+
 #-------------------------------------------------------------------------
 # gen_random_test
 #-------------------------------------------------------------------------
