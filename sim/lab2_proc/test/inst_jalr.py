@@ -17,10 +17,10 @@ from lab2_proc.test.inst_utils import *
 def gen_basic_test():
   return """
 
-    # Use r3 to track the control flow pattern
+    # Use x3 to track the control flow pattern
     addi  x3, x0, 0           # 0x0200
                               #
-    lui x1,      %hi[label_a] # 0x0204
+    lui  x1,     %hi[label_a] # 0x0204
     addi x1, x1, %lo[label_a] # 0x0208
                               #
     nop                       # 0x020c

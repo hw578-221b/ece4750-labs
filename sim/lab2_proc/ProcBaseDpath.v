@@ -113,11 +113,12 @@ module lab2_proc_ProcBaseDpath
     .out  (pc_plus4_F)
   );
 
-  vc_Mux3#(32) pc_sel_mux_F
+  vc_Mux4#(32) pc_sel_mux_F
   (
     .in0  (pc_plus4_F),
     .in1  (br_target_X),
     .in2  (jal_target_D),
+    .in3  (jalr_target_x),
     .sel  (pc_sel_F),
     .out  (pc_next_F)
   );
@@ -290,6 +291,10 @@ module lab2_proc_ProcBaseDpath
   logic [31:0] alu_result_X;
   logic [31:0] ex_result_X;
   logic [31:0] imul_result_X;
+
+  logic [31:0] jalr_target_x;
+
+  assign jalr_target_x = alu_result_X;
 
   lab2_proc_ProcDpathAlu alu
   (

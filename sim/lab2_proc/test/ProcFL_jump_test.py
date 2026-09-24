@@ -54,6 +54,7 @@ class Tests:
 
   @pytest.mark.parametrize( "name,test", [
     asm_test( inst_jalr.gen_basic_test    ),
+    asm_test( inst_jalr.gen_basic2_test   ),
 
     # ''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''
     # Add more rows to the test case table to test more complicated
