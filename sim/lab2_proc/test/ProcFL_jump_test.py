@@ -53,8 +53,9 @@ class Tests:
   #-----------------------------------------------------------------------
 
   @pytest.mark.parametrize( "name,test", [
-    asm_test( inst_jalr.gen_basic_test    ),
-    asm_test( inst_jalr.gen_fulljump_test ),
+    asm_test( inst_jalr.gen_basic_test       ),
+    asm_test( inst_jalr.gen_jump_squash_test ),
+    asm_test( inst_jalr.gen_fulljump_test    ),
   ])
 
   def test_jalr( s, name, test ):

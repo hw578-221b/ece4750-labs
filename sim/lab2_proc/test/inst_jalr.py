@@ -59,6 +59,27 @@ def gen_basic_test():
 # gen_directed_test
 #-------------------------------------------------------------------------
 
+def gen_jump_squash_test():
+  return """
+
+    # Use x3 to track the control flow pattern
+    addi  x3,  x0,  0              # 0x00000200
+    lui   x31,      %hi[label_2]   # 0x00000204
+    addi  x31, x31, %lo[label_2]   # 0x00000208
+    jalr  x1,  x31, 0              # 0x0000020c
+    addi  x3,  x3,  0b00000000001  # 0x00000210
+    addi  x3,  x3,  0b00000000010  # 0x00000214
+                                   #
+  label_2:                         #
+    addi  x3,  x3,  0b00000000100  # 0x00000218
+    addi  x4,  x1,  0              # 0x0000021c
+
+    csrw  proc2mngr, x3 > 0b00000000100
+
+    # Check the link addresses         
+    csrw  proc2mngr, x4 > 0x00000210                        
+  """
+
 def gen_fulljump_test():
   return """
 
