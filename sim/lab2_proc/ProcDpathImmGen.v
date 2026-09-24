@@ -24,7 +24,7 @@ module lab2_proc_ProcDpathImmGen
       3'd2: // B-type
         imm = { {20{inst[31]}}, inst[7], inst[30:25], inst[11:8], 1'b0 };
 
-      3'd3: // U-type
+      3'd3: // U-type 
         imm = { inst[31:12], 12'b0 };
 
       3'd4: // J-type
