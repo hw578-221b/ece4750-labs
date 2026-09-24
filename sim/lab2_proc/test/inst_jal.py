@@ -65,10 +65,10 @@ def gen_multijump_test():
     addi  x3, x3, 0b000010   # 0x0000020c
     addi  x5, x1, 0          # 0x00000210
     jal   x1, label_c        # 0x00000214
-    addi  x1, x3, 0b00100    # 0x00000218
+    addi  x3, x3, 0b000100   # 0x00000218
                              #
   label_a:                   #
-    addi  x3, x3, 0b01000    # 0x0000021c
+    addi  x3, x3, 0b001000   # 0x0000021c
     addi  x4, x1, 0          # 0x00000220
     jal   x1, label_b        # 0x00000224
     addi  x3, x3, 0b010000   # 0x00000228
@@ -100,7 +100,7 @@ def gen_fulljump_test():
     addi  x3, x3, 0b00000000010   # 0x0000020c
     addi  x2, x1, 0               # 0x00000210
     jal   x1, label_4             # 0x00000214
-    addi  x1, x3, 0b00000000100   # 0x00000218
+    addi  x3, x3, 0b00000000100   # 0x00000218
                                   #
   label_2:                        #
     addi  x3, x3, 0b00000001000   # 0x0000021c
@@ -112,13 +112,13 @@ def gen_fulljump_test():
     addi  x3, x3, 0b00000100000   # 0x0000022c
     addi  x5, x1, 0               # 0x00000230
     jal   x1, label_5             # 0x00000234
-    addi  x1, x3, 0b00001000000   # 0x00000238
+    addi  x3, x3, 0b00001000000   # 0x00000238
                                   #
   label_4:                        #
     addi  x3, x3, 0b00010000000   # 0x0000023c
     addi  x6, x1, 0               # 0x00000240
     jal   x1, label_3             # 0x00000244
-    addi  x1, x3, 0b00100000000   # 0x00000248
+    addi  x3, x3, 0b00100000000   # 0x00000248
                                   #
   label_5:                        #
     addi  x3, x3, 0b01000000000   # 0x0000024c

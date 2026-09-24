@@ -54,18 +54,18 @@ class Tests:
 
   @pytest.mark.parametrize( "name,test", [
     asm_test( inst_jalr.gen_basic_test    ),
-    asm_test( inst_jalr.gen_basic2_test   ),
-
-    # ''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    # Add more rows to the test case table to test more complicated
-    # scenarios.
-    # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    asm_test( inst_jalr.gen_fulljump_test ),
   ])
 
   def test_jalr( s, name, test ):
     run_test( s.ProcType, test, cmdline_opts=s.__class__.cmdline_opts )
 
-  # ''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  # random stall and delay
-  # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  def test_jalr_random( s ):
+    for i in range(30):
+      run_test( s.ProcType, inst_jalr.gen_randjump_test, cmdline_opts=s.__class__.cmdline_opts )
+
+  def test_jalr_delays( s ):
+    for i in range(30):
+      run_test( s.ProcType, inst_jalr.gen_randjump_test, delays=True,
+                cmdline_opts=s.__class__.cmdline_opts )
 
