@@ -371,7 +371,7 @@ module lab2_proc_ProcBaseCtrl
       `TINYRV2_INST_ADD     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_add, xm_a,  nr, wm_a, y,  n,   n    );
       `TINYRV2_INST_SUB     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_sub, xm_a,  nr, wm_a, y,  n,   n    );
       `TINYRV2_INST_MUL     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_x,   xm_im, nr, wm_a, y,  n,   n    );
-      `TINYRV2_INST_LW      :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_add, xm_a,  ld, wm_m, y,  n,   n    );
+      `TINYRV2_INST_LW      :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_add, xm_x,  ld, wm_m, y,  n,   n    );
       `TINYRV2_INST_BNE     :cs( y, br_bne, imm_b, y, am_rf, bm_rf,  y, alu_x,   xm_a,  nr, wm_a, n,  n,   n    );
       `TINYRV2_INST_ADDI    :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n    );
       `TINYRV2_INST_LUI     :cs( y, br_na,  imm_u, n, am_x,  bm_imm, n, alu_cp1, xm_a,  nr, wm_a, y,  n,   n    );
@@ -410,6 +410,11 @@ module lab2_proc_ProcBaseCtrl
     if ( csrr_D && inst_csr_D == `TINYRV2_CPR_COREID )
       csrr_sel_D       = 2'h2;
   end
+  
+  // ==? is a synthesizable SystemVerilog operator, ignoring the positions containing ? in the right-hand operand
+  // identity comparisons (=== or !==) does not treat ? as a wildcard. It compares x and z and it's not synthesizable
+  logic is_jal_D;
+  assign is_jal_D = (inst_D ==? `TINYRV2_INST_JAL);
 
   // PC select logic, redirect PC in F if there is a jump (jal), and D is not squashed adn not stalled
 
@@ -485,7 +490,8 @@ module lab2_proc_ProcBaseCtrl
   // Don't use inst_D == TINYRV2_INST_MUL, because The macro contains ? bits
   // "== does not perform wildcard decoding, so that equality can produce X even if inst is MUL
   logic  is_mul_D;
-  assign is_mul_D = (ex_result_sel_D == xm_im);
+  //assign is_mul_D = (ex_result_sel_D == xm_im);
+  assign is_mul_D  = (inst_D ==? `TINYRV2_INST_MUL);
 
   // ostall if inst is MUL and imul module input-stream is not ready and have valid request
   logic  ostall_imul_D;
@@ -514,11 +520,6 @@ module lab2_proc_ProcBaseCtrl
 
   // Final ostall signal
   assign ostall_D = val_D && ( ostall_mngr2proc_D || ostall_hazard_D || ostall_imul_D);
-
-  // ==? is a synthesizable SystemVerilog operator, ignoring the positions containing ? in the right-hand operand
-  // identity comparisons (=== or !==) does not treat ? as a wildcard. It compares x and z and it's not synthesizable
-  logic is_jal_D;
-  assign is_jal_D = (inst_D ==? `TINYRV2_INST_JAL);
 
   // osquash due to PC jump instruction (jal) in D stage (in order to drop the imem_resp data and doesn't perform inst decode)
   // also we can't squash when stalled!
@@ -587,7 +588,7 @@ module lab2_proc_ProcBaseCtrl
       pc_sel_X      = 2'd1;           // use branch target (PC+imm) when pc_redirect_X == 1
     end
     // jump logic, redirect PC in F if inst is jalr
-    else if ( val_X && (ex_result_sel_X == xm_pc) && (alu_fn_X == alu_jalr) && !stall_X) begin
+    else if ( val_X && is_jalr_X && !stall_X) begin
       pc_redirect_X = 1'd1;
       pc_sel_X      = 2'd3;
     end
@@ -598,14 +599,17 @@ module lab2_proc_ProcBaseCtrl
     end
   end
 
+  logic is_mul_X;
+  assign is_mul_X = (inst_X ==? `TINYRV2_INST_MUL);
+
   // set imul resp stream ready if inst is mul and stage not stalled
   // There is no way to squash the X stage so we don't need to worry about that situation
   logic stall_other_X;
-  assign imul_resp_rdy_X = val_X && (ex_result_sel_X == xm_im) && !stall_other_X;
+  assign imul_resp_rdy_X = val_X && is_mul_X && !stall_other_X;
 
   // ostall when inst is mul and imul doesn't have valid output but X stage ready to have results
   logic ostall_X_imul;
-  assign ostall_X_imul = val_X && (ex_result_sel_X == xm_im) && !imul_resp_val_X && imul_resp_rdy_X;
+  assign ostall_X_imul = val_X && is_mul_X && !imul_resp_val_X && imul_resp_rdy_X;
 
   // ostall due to dmem_reqstream not ready.
   logic ostall_X_dmem;
@@ -624,9 +628,12 @@ module lab2_proc_ProcBaseCtrl
   logic osquash_X_bne;
   assign osquash_X_bne = val_X && !stall_X && pc_redirect_X;
 
+  logic is_jalr_X;
+  assign is_jalr_X = (inst_X ==? `TINYRV2_INST_JALR);
+
   // osquash due to PC jump instruction in X stage (jalr)
   logic osquash_X_jalr;
-  assign osquash_X_jalr = val_X && !stall_X && (ex_result_sel_X == xm_pc) && (alu_fn_X == alu_jalr);
+  assign osquash_X_jalr = val_X && !stall_X && is_jalr_X;
 
   // final osquash_X signal
   assign osquash_X = osquash_X_bne || osquash_X_jalr;
