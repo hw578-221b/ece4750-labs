@@ -578,3 +578,83 @@ def gen_ld_value_test( inst, offset, base, result ):
   return gen_ld_template( 0, 0, "x1", inst, offset, base, result )
 
 # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+#-------------------------------------------------------------------------
+# gen_sw_template
+#-------------------------------------------------------------------------
+
+def gen_sw_template(
+  num_nops_base, num_nops_dest,
+  reg_base, reg_data,
+  inst, offset, base, data, result
+):
+  return """
+
+    # Move base value into register
+    csrr {reg_base}, mngr2proc < {base}
+    csrr {reg_data}, mngr2proc < {data}
+    {nops_base}
+
+    # Instruction under test
+    {inst} {reg_data}, {offset}({reg_base})
+    {nops_dest}
+
+    # Pull result from memory
+    lw x3, {offset}({reg_base})
+
+    # Check the result
+    csrw proc2mngr, x3 > {result}
+
+  """.format(
+    nops_base = gen_nops(num_nops_base),
+    nops_dest = gen_nops(num_nops_dest),
+    **locals()
+  )
+
+#-------------------------------------------------------------------------
+# gen_sw_dest_dep_test
+#-------------------------------------------------------------------------
+# Test the destination bypass path by varying how many nops are
+# inserted between the instruction under test and reading the destination
+# register with a lw instruction.
+
+def gen_sw_dest_dep_test( num_nops, inst, base, data ):
+  return gen_sw_template( 8, num_nops, "x1", "x2", inst, 0, base, data, data )
+
+#-------------------------------------------------------------------------
+# gen_sw_base_dep_test
+#-------------------------------------------------------------------------
+# Test the base register bypass paths by varying how many nops are
+# inserted between writing the base register and reading this register in
+# the instruction under test.
+
+def gen_sw_base_dep_test( num_nops, inst, base, data ):
+  return gen_sw_template( num_nops , 0, "x1", "x2", inst, 0, base, data, data )
+
+#-------------------------------------------------------------------------
+# gen_sw_base_eq_addr_test
+#-------------------------------------------------------------------------
+# Test situation where the base register specifier is the same as the
+# address register specifier.
+
+def gen_sw_base_eq_addr_test( inst, base ):
+  return gen_sw_template( 0 , 0, "x2", "x2", inst, 0, base, base, base )
+
+#-------------------------------------------------------------------------
+# gen_sw_all_eq_test
+#-------------------------------------------------------------------------
+# Test situation where the base register specifier is the same as the
+# address register specifier and lw destination register specifier.
+
+def gen_sw_all_eq_test( inst, base ):
+  return gen_sw_template( 0 , 0, "x3", "x3", inst, 0, base, base, base )
+
+#-------------------------------------------------------------------------
+# gen_sw_value_test
+#-------------------------------------------------------------------------
+# Test the actual operation of a register-register instruction under
+# test. We assume that bypassing has already been tested.
+
+def gen_sw_value_test( inst, offset, base, data ):
+  return gen_sw_template( 0, 0, "x1", "x2", inst, offset, base, data, data )
+

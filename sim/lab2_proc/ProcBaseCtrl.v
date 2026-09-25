@@ -28,6 +28,7 @@ module lab2_proc_ProcBaseCtrl
   input  logic        dmem_reqstream_rdy,
   input  logic        dmem_respstream_val,
   output logic        dmem_respstream_rdy,
+  output logic        dmem_write_X,
 
   // mngr communication port
 
@@ -365,19 +366,20 @@ module lab2_proc_ProcBaseCtrl
     casez ( inst_D )
       //                            br      imm   rs1 op1    op2    rs2 alu      exmux  dmm wbmux rf
       //                        val type    type   en muxsel muxsel  en fn       sel    typ sel   wen csrr csrw
-      `TINYRV2_INST_CSRR    :cs( y, br_na,  imm_i, n, am_rf, bm_csr, n, alu_cp1, xm_a,  nr, wm_a, y,  y,   n    );
-      `TINYRV2_INST_CSRW    :cs( y, br_na,  imm_i, y, am_rf, bm_rf,  n, alu_cp0, xm_a,  nr, wm_a, n,  n,   y    );
-      `TINYRV2_INST_NOP     :cs( y, br_na,  imm_x, n, am_x,  bm_x,   n, alu_x,   xm_a,  nr, wm_a, n,  n,   n    );
-      `TINYRV2_INST_ADD     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_add, xm_a,  nr, wm_a, y,  n,   n    );
-      `TINYRV2_INST_SUB     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_sub, xm_a,  nr, wm_a, y,  n,   n    );
-      `TINYRV2_INST_MUL     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_x,   xm_im, nr, wm_a, y,  n,   n    );
-      `TINYRV2_INST_LW      :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_add, xm_x,  ld, wm_m, y,  n,   n    );
-      `TINYRV2_INST_BNE     :cs( y, br_bne, imm_b, y, am_rf, bm_rf,  y, alu_x,   xm_a,  nr, wm_a, n,  n,   n    );
-      `TINYRV2_INST_ADDI    :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n    );
-      `TINYRV2_INST_LUI     :cs( y, br_na,  imm_u, n, am_x,  bm_imm, n, alu_cp1, xm_a,  nr, wm_a, y,  n,   n    );
-      `TINYRV2_INST_AUIPC   :cs( y, br_na,  imm_u, n, am_pc, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n    );
-      `TINYRV2_INST_JAL     :cs( y, br_na,  imm_j, n, am_x,  bm_x,   n, alu_add, xm_pc, nr, wm_a, y,  n,   n    );
-      `TINYRV2_INST_JALR    :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_jalr,xm_pc, nr, wm_a, y,  n,   n    );
+      `TINYRV2_INST_CSRR    :cs( y, br_na,  imm_i, n, am_rf, bm_csr, n, alu_cp1, xm_a,  nr, wm_a, y,  y,   n   );
+      `TINYRV2_INST_CSRW    :cs( y, br_na,  imm_i, y, am_rf, bm_rf,  n, alu_cp0, xm_a,  nr, wm_a, n,  n,   y   );
+      `TINYRV2_INST_NOP     :cs( y, br_na,  imm_x, n, am_x,  bm_x,   n, alu_x,   xm_a,  nr, wm_a, n,  n,   n   );
+      `TINYRV2_INST_ADD     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_add, xm_a,  nr, wm_a, y,  n,   n   );
+      `TINYRV2_INST_SUB     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_sub, xm_a,  nr, wm_a, y,  n,   n   );
+      `TINYRV2_INST_MUL     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_x,   xm_im, nr, wm_a, y,  n,   n   );
+      `TINYRV2_INST_LW      :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_add, xm_x,  ld, wm_m, y,  n,   n   );
+      `TINYRV2_INST_SW      :cs( y, br_na,  imm_s, y, am_rf, bm_imm, y, alu_add, xm_x,  st, wm_a, n,  n,   n   );
+      `TINYRV2_INST_BNE     :cs( y, br_bne, imm_b, y, am_rf, bm_rf,  y, alu_x,   xm_a,  nr, wm_a, n,  n,   n   );
+      `TINYRV2_INST_ADDI    :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n   );
+      `TINYRV2_INST_LUI     :cs( y, br_na,  imm_u, n, am_x,  bm_imm, n, alu_cp1, xm_a,  nr, wm_a, y,  n,   n   );
+      `TINYRV2_INST_AUIPC   :cs( y, br_na,  imm_u, n, am_pc, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n   );
+      `TINYRV2_INST_JAL     :cs( y, br_na,  imm_j, n, am_x,  bm_x,   n, alu_add, xm_pc, nr, wm_a, y,  n,   n   );
+      `TINYRV2_INST_JALR    :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_jalr,xm_pc, nr, wm_a, y,  n,   n   );
 
       //''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''
       // Add more instructions to the control signal table
@@ -646,6 +648,9 @@ module lab2_proc_ProcBaseCtrl
 
   // set dmem_reqstream_val only if not stalling
   assign dmem_reqstream_val = val_X && !stall_X && ( dmem_type_X != nr );
+
+  // used to identify store instrution
+  assign dmem_write_X = (dmem_type_X == st);
 
   // Valid signal for the next stage
   // X generates the branch squash, but X itself is not squashed (BNE need to complete rest of the stages)
