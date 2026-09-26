@@ -391,6 +391,7 @@ module lab2_proc_ProcBaseCtrl
       `TINYRV2_INST_SW      :cs( y, br_na,  imm_s, y, am_rf, bm_imm, y, alu_add, xm_x,  st, wm_a, n,  n,   n   );
       `TINYRV2_INST_ADDI    :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_ORI     :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_or,  xm_a,  nr, wm_a, y,  n,   n   );
+      `TINYRV2_INST_SLTI    :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_lt,  xm_a,  nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_LUI     :cs( y, br_na,  imm_u, n, am_x,  bm_imm, n, alu_cp1, xm_a,  nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_AUIPC   :cs( y, br_na,  imm_u, n, am_pc, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_BNE     :cs( y, br_bne, imm_b, y, am_rf, bm_rf,  y, alu_x,   xm_a,  nr, wm_a, n,  n,   n   );
