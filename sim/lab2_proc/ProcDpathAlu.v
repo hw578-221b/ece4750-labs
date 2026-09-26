@@ -27,6 +27,9 @@ module lab2_proc_ProcDpathAlu
       4'd3    : out = $signed(in0) >>> in1[4:0];                // SRA
       4'd4    : out = in0 >> in1[4:0];                          // SRL
       4'd5    : out = in0 << in1[4:0];                          // SLL
+      4'd6    : out = in0 & in1;                                // AND
+      4'd7    : out = in0 | in1;                                // OR
+      4'd8    : out = in0 ^ in1;                                // XOR
       4'd11   : out = in0;                                      // CP OP0
       4'd12   : out = in1;                                      // CP OP1
       4'd13   : out = (in0 + in1) & 32'hfffffffe;               // JALR

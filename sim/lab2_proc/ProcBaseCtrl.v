@@ -284,6 +284,9 @@ module lab2_proc_ProcBaseCtrl
   localparam alu_sra  = 4'd3;
   localparam alu_srl  = 4'd4;
   localparam alu_sll  = 4'd5;
+  localparam alu_and  = 4'd6;
+  localparam alu_or   = 4'd7;
+  localparam alu_xor  = 4'd8;
   localparam alu_cp0  = 4'd11;
   localparam alu_cp1  = 4'd12;
   localparam alu_jalr = 4'd13;
@@ -377,6 +380,9 @@ module lab2_proc_ProcBaseCtrl
       `TINYRV2_INST_ADD     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_add, xm_a,  nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_SUB     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_sub, xm_a,  nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_MUL     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_x,   xm_im, nr, wm_a, y,  n,   n   );
+      `TINYRV2_INST_AND     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_and, xm_a,  nr, wm_a, y,  n,   n   );
+      `TINYRV2_INST_OR      :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_or,  xm_a,  nr, wm_a, y,  n,   n   );
+      `TINYRV2_INST_XOR     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_xor, xm_a,  nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_SLT     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_lt,  xm_a,  nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_SRA     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_sra, xm_a,  nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_SRL     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_srl, xm_a,  nr, wm_a, y,  n,   n   );
