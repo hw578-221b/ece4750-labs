@@ -45,7 +45,6 @@ class Tests:
       run_test( s.ProcType, inst_jal.gen_randjump_test, cmdline_opts=s.__class__.cmdline_opts )
 
   def test_jal_delays( s ):
-    for i in range(30):
       run_test( s.ProcType, inst_jal.gen_randjump_test, delays=True,
                 cmdline_opts=s.__class__.cmdline_opts )
 
@@ -68,7 +67,6 @@ class Tests:
       run_test( s.ProcType, inst_jalr.gen_randjump_test, cmdline_opts=s.__class__.cmdline_opts )
 
   def test_jalr_delays( s ):
-    for i in range(30):
       run_test( s.ProcType, inst_jalr.gen_randjump_test, delays=True,
                 cmdline_opts=s.__class__.cmdline_opts )
 

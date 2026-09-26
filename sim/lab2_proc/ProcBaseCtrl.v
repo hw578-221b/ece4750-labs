@@ -260,6 +260,7 @@ module lab2_proc_ProcBaseCtrl
   localparam br_x     = 3'bx; // Don't care
   localparam br_na    = 3'b0; // No branch
   localparam br_bne   = 3'b1; // bne
+  localparam br_beq   = 3'd2; // beq
 
   // Operand 0 Mux Select
 
@@ -374,16 +375,13 @@ module lab2_proc_ProcBaseCtrl
       `TINYRV2_INST_MUL     :cs( y, br_na,  imm_x, y, am_rf, bm_rf,  y, alu_x,   xm_im, nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_LW      :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_add, xm_x,  ld, wm_m, y,  n,   n   );
       `TINYRV2_INST_SW      :cs( y, br_na,  imm_s, y, am_rf, bm_imm, y, alu_add, xm_x,  st, wm_a, n,  n,   n   );
-      `TINYRV2_INST_BNE     :cs( y, br_bne, imm_b, y, am_rf, bm_rf,  y, alu_x,   xm_a,  nr, wm_a, n,  n,   n   );
       `TINYRV2_INST_ADDI    :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_LUI     :cs( y, br_na,  imm_u, n, am_x,  bm_imm, n, alu_cp1, xm_a,  nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_AUIPC   :cs( y, br_na,  imm_u, n, am_pc, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n   );
+      `TINYRV2_INST_BNE     :cs( y, br_bne, imm_b, y, am_rf, bm_rf,  y, alu_x,   xm_a,  nr, wm_a, n,  n,   n   );
+      `TINYRV2_INST_BEQ     :cs( y, br_beq, imm_b, y, am_rf, bm_rf,  y, alu_x,   xm_a,  nr, wm_a, n,  n,   n   );
       `TINYRV2_INST_JAL     :cs( y, br_na,  imm_j, n, am_x,  bm_x,   n, alu_add, xm_pc, nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_JALR    :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_jalr,xm_pc, nr, wm_a, y,  n,   n   );
-
-      //''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''
-      // Add more instructions to the control signal table
-      //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
       default               :cs( n, br_x,   imm_x, n, am_x,  bm_x,   n, alu_x,   xm_a,  nr, wm_x, n,  n,   n    );
 
@@ -586,8 +584,12 @@ module lab2_proc_ProcBaseCtrl
   always_comb begin
     // branch logic, redirect PC in F if branch is taken
     if ( val_X && ( br_type_X == br_bne ) && !stall_X) begin
-      pc_redirect_X = !br_cond_eq_X;  // br_cond_eq_X should be 0 when branch taken (redirect), 1 when branch not taken (continue)
+      pc_redirect_X = !br_cond_eq_X;  // for bne, br_cond_eq_X should be 0 when branch taken (redirect), 1 when branch not taken (continue)
       pc_sel_X      = 2'd1;           // use branch target (PC+imm) when pc_redirect_X == 1
+    end
+    else if ( val_X && ( br_type_X == br_beq ) && !stall_X) begin
+       pc_redirect_X = br_cond_eq_X;  // for beq
+       pc_sel_X      = 2'd1;
     end
     // jump logic, redirect PC in F if inst is jalr
     else if ( val_X && is_jalr_X && !stall_X) begin

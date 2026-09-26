@@ -33,19 +33,24 @@ class Tests:
   #-----------------------------------------------------------------------
 
   @pytest.mark.parametrize( "name,test", [
-    asm_test( inst_beq.gen_basic_test ) ,
-
-    # ''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    # Add more rows to the test case table to test more complicated
-    # scenarios.
-    # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    asm_test( inst_beq.gen_basic_test             ),
+    asm_test( inst_beq.gen_src0_dep_taken_test    ),
+    asm_test( inst_beq.gen_src0_dep_nottaken_test ),
+    asm_test( inst_beq.gen_src1_dep_taken_test    ),
+    asm_test( inst_beq.gen_src1_dep_nottaken_test ),
+    asm_test( inst_beq.gen_srcs_dep_taken_test    ),
+    asm_test( inst_beq.gen_srcs_dep_nottaken_test ),
+    asm_test( inst_beq.gen_src0_eq_src1_test      ),
+    asm_test( inst_beq.gen_value_test             ),
+    asm_test( inst_beq.gen_random_test            ),
+    asm_test( inst_beq.gen_back_to_back_test      ),
   ])
   def test_beq( s, name, test ):
     run_test( s.ProcType, test, cmdline_opts=s.__class__.cmdline_opts )
 
-  # ''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  # random stall and delay
-  # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  def test_beq_delays( s ):
+    run_test( s.ProcType, inst_beq.gen_random_test, delays=True,
+              cmdline_opts=s.__class__.cmdline_opts )
 
   #-----------------------------------------------------------------------
   # bne
@@ -67,9 +72,10 @@ class Tests:
   def test_bne( s, name, test ):
     run_test( s.ProcType, test, cmdline_opts=s.__class__.cmdline_opts )
 
-  # ''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  # random stall and delay
-  # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  def test_bne_delays( s ):
+    run_test( s.ProcType, inst_bne.gen_random_test, delays=True,
+              cmdline_opts=s.__class__.cmdline_opts )
+  
 
   #-----------------------------------------------------------------------
   # blt
