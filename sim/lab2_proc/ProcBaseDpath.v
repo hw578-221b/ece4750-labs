@@ -72,7 +72,8 @@ module lab2_proc_ProcBaseDpath
 
   output logic [31:0]  inst_D,
   output logic         br_cond_eq_X,
-  output  logic        br_cond_lt_X,
+  output logic         br_cond_lt_X,
+  output logic         br_cond_ltu_X,
 
   output logic         imul_req_rdy_D,
   output logic         imul_resp_val_X,
@@ -315,7 +316,7 @@ module lab2_proc_ProcBaseDpath
     .out      (alu_result_X),
     .ops_eq   (br_cond_eq_X),
     .ops_lt   (br_cond_lt_X),
-    .ops_ltu  ()
+    .ops_ltu  (br_cond_ltu_X)
   );
 
   lab1_imul_IntMulAlt imul
