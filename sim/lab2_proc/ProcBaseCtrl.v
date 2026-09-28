@@ -67,6 +67,7 @@ module lab2_proc_ProcBaseCtrl
 
   input  logic [31:0] inst_D,
   input  logic        br_cond_eq_X,
+  input  logic        br_cond_lt_X,
 
   input  logic        imul_req_rdy_D,
   input  logic        imul_resp_val_X,
@@ -261,6 +262,7 @@ module lab2_proc_ProcBaseCtrl
   localparam br_na    = 3'b0; // No branch
   localparam br_bne   = 3'b1; // bne
   localparam br_beq   = 3'd2; // beq
+  localparam br_blt   = 3'd3; // blt
 
   // Operand 0 Mux Select
 
@@ -398,6 +400,7 @@ module lab2_proc_ProcBaseCtrl
       `TINYRV2_INST_AUIPC   :cs( y, br_na,  imm_u, n, am_pc, bm_imm, n, alu_add, xm_a,  nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_BNE     :cs( y, br_bne, imm_b, y, am_rf, bm_rf,  y, alu_x,   xm_a,  nr, wm_a, n,  n,   n   );
       `TINYRV2_INST_BEQ     :cs( y, br_beq, imm_b, y, am_rf, bm_rf,  y, alu_x,   xm_a,  nr, wm_a, n,  n,   n   );
+      `TINYRV2_INST_BLT     :cs( y, br_blt, imm_b, y, am_rf, bm_rf,  y, alu_x,   xm_a,  nr, wm_a, n,  n,   n   );
       `TINYRV2_INST_JAL     :cs( y, br_na,  imm_j, n, am_x,  bm_x,   n, alu_add, xm_pc, nr, wm_a, y,  n,   n   );
       `TINYRV2_INST_JALR    :cs( y, br_na,  imm_i, y, am_rf, bm_imm, n, alu_jalr,xm_pc, nr, wm_a, y,  n,   n   );
 
@@ -605,8 +608,14 @@ module lab2_proc_ProcBaseCtrl
       pc_redirect_X = !br_cond_eq_X;  // for bne, br_cond_eq_X should be 0 when branch taken (redirect), 1 when branch not taken (continue)
       pc_sel_X      = 2'd1;           // use branch target (PC+imm) when pc_redirect_X == 1
     end
+    // branch logic for beq
     else if ( val_X && ( br_type_X == br_beq ) && !stall_X) begin
-       pc_redirect_X = br_cond_eq_X;  // for beq
+       pc_redirect_X = br_cond_eq_X; 
+       pc_sel_X      = 2'd1;
+    end
+    // branch logic for blt
+    else if ( val_X && ( br_type_X == br_blt ) && !stall_X) begin
+       pc_redirect_X = br_cond_lt_X; 
        pc_sel_X      = 2'd1;
     end
     // jump logic, redirect PC in F if inst is jalr

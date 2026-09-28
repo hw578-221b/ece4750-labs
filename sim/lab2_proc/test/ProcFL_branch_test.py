@@ -83,18 +83,23 @@ class Tests:
 
   @pytest.mark.parametrize( "name,test", [
     asm_test( inst_blt.gen_basic_test             ),
-
-    # ''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    # Add more rows to the test case table to test more complicated
-    # scenarios.
-    # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    asm_test( inst_blt.gen_src0_dep_taken_test    ),
+    asm_test( inst_blt.gen_src0_dep_nottaken_test ),
+    asm_test( inst_blt.gen_src1_dep_taken_test    ),
+    asm_test( inst_blt.gen_src1_dep_nottaken_test ),
+    asm_test( inst_blt.gen_srcs_dep_taken_test    ),
+    asm_test( inst_blt.gen_srcs_dep_nottaken_test ),
+    asm_test( inst_blt.gen_src0_eq_src1_test      ),
+    asm_test( inst_blt.gen_value_test             ),
+    asm_test( inst_blt.gen_random_test            ),
+    asm_test( inst_blt.gen_back_to_back_test      ),
   ])
   def test_blt( s, name, test ):
     run_test( s.ProcType, test, cmdline_opts=s.__class__.cmdline_opts )
 
-  # ''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  # random stall and delay
-  # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  def test_blt_delays( s ):
+    run_test( s.ProcType, inst_blt.gen_random_test, delays=True,
+              cmdline_opts=s.__class__.cmdline_opts )
 
   #-----------------------------------------------------------------------
   # bltu

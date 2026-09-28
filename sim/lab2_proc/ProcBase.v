@@ -218,6 +218,7 @@ module lab2_proc_ProcBase
 
   logic [31:0] inst_D;
   logic        br_cond_eq_X;
+  logic        br_cond_lt_X;
   logic        imul_req_rdy_D;
   logic        imul_resp_val_X;
 
