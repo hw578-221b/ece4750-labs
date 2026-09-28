@@ -97,6 +97,7 @@ module lab2_proc_ProcBase
 
     .deq_msg (imem_reqstream_msg),
     .deq_val (imem_reqstream_val),
+    // Driven by PyMTL logic
     .deq_rdy (imem_reqstream_rdy)
   );
 
@@ -117,9 +118,9 @@ module lab2_proc_ProcBase
     .drop        (imem_respstream_drop),
 
     .istream_msg (imem_respstream_msg),
-    .istream_val (imem_respstream_val),
+    .istream_val (imem_respstream_val), // Driven by PyMTL logic
     .istream_rdy (imem_respstream_rdy),
-
+    
     .ostream_msg (imem_respstream_drop_msg),
     .ostream_val (imem_respstream_drop_val),
     .ostream_rdy (imem_respstream_drop_rdy)
@@ -146,6 +147,7 @@ module lab2_proc_ProcBase
   assign dmem_reqstream_enq_msg.len    = 2'd0; // all four bytes are valid
   assign dmem_reqstream_enq_msg.data   = dmem_reqstream_enq_msg_data;
 
+  // Only have bypass queue in dmem req_stream, not resp_stream
   vc_Queue#(`VC_QUEUE_BYPASS,$bits(mem_req_4B_t),1) dmem_queue
   (
     .clk     (clk),
@@ -158,7 +160,7 @@ module lab2_proc_ProcBase
 
     .deq_msg (dmem_reqstream_msg),
     .deq_val (dmem_reqstream_val),
-    .deq_rdy (dmem_reqstream_rdy)
+    .deq_rdy (dmem_reqstream_rdy)  // Driven by PyMTL memoryFL logic in test harness.py
   );
 
   //----------------------------------------------------------------------
