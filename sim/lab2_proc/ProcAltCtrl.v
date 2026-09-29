@@ -9,7 +9,7 @@
 
 `include "lab2_proc/tinyrv2_encoding.v"
 
-module lab2_proc_ProcBaseCtrl
+module lab2_proc_ProcAltCtrl
 (
   input  logic        clk,
   input  logic        reset,
@@ -43,6 +43,8 @@ module lab2_proc_ProcBaseCtrl
   output logic [1:0]  pc_sel_F,
 
   output logic        reg_en_D,
+  output logic [1:0]  op1_byp_sel_D,
+  output logic [1:0]  op2_byp_sel_D,
   output logic        op1_sel_D,
   output logic [1:0]  op2_sel_D,
   output logic [1:0]  csrr_sel_D,
@@ -195,17 +197,8 @@ module lab2_proc_ProcBaseCtrl
   assign squash_F = val_F && ( osquash_D || osquash_X );
 
   // We drop the imem response when we are getting squashed
-  // squash_F high cause drop unit to output imem_resp_val to be 0, casue F to stall (ostall_F)
-  // But this design give ***squash (not osquash) prority over stall*** via (!stall_F || squash_F)
-  // So when squash is high, not matter stage stall or not, signal like reg_en_F, imem_reqstream_val, imem_respstream_rdy
-  // are still 1, this allow F can update its PC to the redirect target and issue the target request even when stalled
-  // inst_D will still catch the discarded inst bits, but next_val_F will be 0, it travel along the pipeline 
-  // to disable every stage with that inst (inst_D/X/M/W have data, but val_D/X/M/W is 0, this is a ***bubble***)
-  // and val signal gates the architectural effect, e.g. rf_wen_W = val_W && rf_wen_pending_W; so an invalid inst can't write register
-  assign imem_respstream_drop = squash_F;
 
-  // Also, a stall originating in F does not stall D, stall_D includes stalls from D and later stages, not ostall_F
-  // So if D originate the squash, it won't be stalled/squashed and will finish the inst
+  assign imem_respstream_drop = squash_F;
 
   // imem is very special. Actually imem requests are sent before the F
   // stage. Note that we need to factor in reset to the imem_reqstream_val
@@ -226,9 +219,6 @@ module lab2_proc_ProcBaseCtrl
 
   // Register enable logic
 
-  // When squash_D = 1, an older instruction in X has determined that F, D's instructions are on the wrong path. 
-  // Enable invalid status from F to propogate to D, even if D is currently stalled (!stall_D = 0)
-  // -> Squash take prority over stall
   assign reg_en_D = !stall_D || squash_D;
 
   // Pipline registers
@@ -485,44 +475,46 @@ module lab2_proc_ProcBaseCtrl
   // ostall if write address in X matches rs1 in D
 
   logic  ostall_waddr_X_rs1_D;
-  assign ostall_waddr_X_rs1_D
-    = rs1_en_D && val_X && rf_wen_X
-      && ( inst_rs1_D == rf_waddr_X ) && ( rf_waddr_X != 5'd0 );
+  // assign ostall_waddr_X_rs1_D
+  //   = rs1_en_D && val_X && rf_wen_X
+  //     && ( inst_rs1_D == rf_waddr_X ) && ( rf_waddr_X != 5'd0 );
+  assign ostall_waddr_X_rs1_D = 0;
 
   // ostall if write address in M matches rs1 in D
 
   logic  ostall_waddr_M_rs1_D;
-  assign ostall_waddr_M_rs1_D
-    = rs1_en_D && val_M && rf_wen_M
-      && ( inst_rs1_D == rf_waddr_M ) && ( rf_waddr_M != 5'd0 );
+  assign ostall_waddr_M_rs1_D = 0;
+    // = rs1_en_D && val_M && rf_wen_M
+    //   && ( inst_rs1_D == rf_waddr_M ) && ( rf_waddr_M != 5'd0 );
 
   // ostall if write address in W matches rs1 in D
 
   logic  ostall_waddr_W_rs1_D;
-  assign ostall_waddr_W_rs1_D
-    = rs1_en_D && val_W && rf_wen_W
-      && ( inst_rs1_D == rf_waddr_W ) && ( rf_waddr_W != 5'd0 );
+  assign ostall_waddr_W_rs1_D = 0;
+    // = rs1_en_D && val_W && rf_wen_W
+    //   && ( inst_rs1_D == rf_waddr_W ) && ( rf_waddr_W != 5'd0 );
 
   // ostall if write address in X matches rs2 in D
 
   logic  ostall_waddr_X_rs2_D;
-  assign ostall_waddr_X_rs2_D
-    = rs2_en_D && val_X && rf_wen_X
-      && ( inst_rs2_D == rf_waddr_X ) && ( rf_waddr_X != 5'd0 );
+  // assign ostall_waddr_X_rs2_D
+  //   = rs2_en_D && val_X && rf_wen_X
+  //     && ( inst_rs2_D == rf_waddr_X ) && ( rf_waddr_X != 5'd0 );
+  assign ostall_waddr_X_rs2_D = 0;
 
   // ostall if write address in M matches rs2 in D
 
   logic  ostall_waddr_M_rs2_D;
-  assign ostall_waddr_M_rs2_D
-    = rs2_en_D && val_M && rf_wen_M
-      && ( inst_rs2_D == rf_waddr_M ) && ( rf_waddr_M != 5'd0 );
+  assign ostall_waddr_M_rs2_D = 0;
+    // = rs2_en_D && val_M && rf_wen_M
+    //   && ( inst_rs2_D == rf_waddr_M ) && ( rf_waddr_M != 5'd0 );
 
   // ostall if write address in W matches rs2 in D
 
   logic  ostall_waddr_W_rs2_D;
-  assign ostall_waddr_W_rs2_D
-    = rs2_en_D && val_W && rf_wen_W
-      && ( inst_rs2_D == rf_waddr_W ) && ( rf_waddr_W != 5'd0 );
+  assign ostall_waddr_W_rs2_D = 0;
+    // = rs2_en_D && val_W && rf_wen_W
+    //   && ( inst_rs2_D == rf_waddr_W ) && ( rf_waddr_W != 5'd0 );
 
   // Don't use inst_D == TINYRV2_INST_MUL, because The macro contains ? bits
   // "== does not perform wildcard decoding, so that equality can produce X even if inst is MUL
@@ -558,9 +550,33 @@ module lab2_proc_ProcBaseCtrl
   // Final ostall signal
   assign ostall_D = val_D && ( ostall_mngr2proc_D || ostall_hazard_D || ostall_imul_D);
 
-  // osquash due to PC jump instruction (jal) in D stage (in order to invalidate the imem_resp data)
+  // osquash due to PC jump instruction (jal) in D stage (in order to drop the imem_resp data)
   // also we can't squash when stalled!
   assign osquash_D = val_D && !stall_D && is_jal_D;
+
+  logic op1_byp_X, op2_byp_X;
+
+  // bypass logic from X to D for rs1
+  assign op1_byp_X = val_D && rs1_en_D && val_X && rf_wen_X && 
+      ( inst_rs1_D == rf_waddr_X ) && (rf_waddr_X != 5'd0);
+
+  // bypass logic from X to D for rs2
+  assign op2_byp_X = val_D && rs2_en_D && val_X && rf_wen_X && 
+      ( inst_rs2_D == rf_waddr_X ) && (rf_waddr_X != 5'd0);
+
+  always_comb begin
+    if(op1_byp_X)
+      op1_byp_sel_D = 2'd1;
+    else
+      op1_byp_sel_D = 2'd0;
+  end
+
+  always_comb begin
+    if(op2_byp_X)
+      op2_byp_sel_D = 2'd1;
+    else
+      op2_byp_sel_D = 2'd0;
+  end
 
   // stall and squash in D
   assign stall_D  = val_D && ( ostall_D || ostall_X || ostall_M || ostall_W );
