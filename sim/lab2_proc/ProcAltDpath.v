@@ -316,7 +316,7 @@ module lab2_proc_ProcAltDpath
     .clk   (clk),
     .reset (reset),
     .en    (reg_en_X),
-    .d     (rf_rdata1_D),
+    .d     (op2_byp_out),
     .q     (dmem_reqstream_msg_data)
   );
 

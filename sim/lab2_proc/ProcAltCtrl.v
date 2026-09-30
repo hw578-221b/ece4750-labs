@@ -547,46 +547,43 @@ module lab2_proc_ProcAltCtrl
       ostall_waddr_X_rs1_D || ostall_waddr_M_rs1_D || ostall_waddr_W_rs1_D ||
       ostall_waddr_X_rs2_D || ostall_waddr_M_rs2_D || ostall_waddr_W_rs2_D;
 
-  // Final ostall signal
-  assign ostall_D = val_D && ( ostall_mngr2proc_D || ostall_hazard_D || ostall_imul_D);
-
   // osquash due to PC jump instruction (jal) in D stage (in order to drop the imem_resp data)
   // also we can't squash when stalled!
   assign osquash_D = val_D && !stall_D && is_jal_D;
 
-  logic op1_byp_X, op2_byp_X, op1_byp_M, op2_byp_M, op1_byp_W, op2_byp_W;
+  logic op1_byp_X_D, op2_byp_X_D, op1_byp_M_D, op2_byp_M_D, op1_byp_W_D, op2_byp_W_D;
 
   // bypass logic from X to D for rs1
-  assign op1_byp_X = val_D && rs1_en_D && val_X && rf_wen_X && 
-      ( inst_rs1_D == rf_waddr_X ) && (rf_waddr_X != 5'd0);
+  assign op1_byp_X_D = val_D && rs1_en_D && val_X && rf_wen_X && 
+      ( inst_rs1_D == rf_waddr_X ) && (rf_waddr_X != 5'd0) && (inst_X !=? `TINYRV2_INST_LW);
 
   // bypass logic from M to D for rs1
-  assign op1_byp_M = val_D && rs1_en_D && val_M && rf_wen_M && 
+  assign op1_byp_M_D = val_D && rs1_en_D && val_M && rf_wen_M && 
       ( inst_rs1_D == rf_waddr_M ) && (rf_waddr_M != 5'd0);
 
   // bypass logic from W to D for rs1
-  assign op1_byp_W = val_D && rs1_en_D && val_W && rf_wen_W && 
+  assign op1_byp_W_D = val_D && rs1_en_D && val_W && rf_wen_W && 
       ( inst_rs1_D == rf_waddr_W ) && (rf_waddr_W != 5'd0);
 
   // bypass logic from X to D for rs2
-  assign op2_byp_X = val_D && rs2_en_D && val_X && rf_wen_X && 
-      ( inst_rs2_D == rf_waddr_X ) && (rf_waddr_X != 5'd0);
+  assign op2_byp_X_D = val_D && rs2_en_D && val_X && rf_wen_X && 
+      ( inst_rs2_D == rf_waddr_X ) && (rf_waddr_X != 5'd0) && (inst_X !=? `TINYRV2_INST_LW);
 
   // bypass logic from M to D for rs2
-  assign op2_byp_M = val_D && rs2_en_D && val_M && rf_wen_M && 
+  assign op2_byp_M_D = val_D && rs2_en_D && val_M && rf_wen_M && 
       ( inst_rs2_D == rf_waddr_M ) && (rf_waddr_M != 5'd0);
 
   // bypass logic from W to D for rs2
-  assign op2_byp_W = val_D && rs2_en_D && val_W && rf_wen_W && 
+  assign op2_byp_W_D = val_D && rs2_en_D && val_W && rf_wen_W && 
       ( inst_rs2_D == rf_waddr_W ) && (rf_waddr_W != 5'd0);
 
   // rs1 bypass select logic
   always_comb begin
-    if(op1_byp_X)
+    if(op1_byp_X_D)
       op1_byp_sel_D = 2'd1;
-    else if(op1_byp_M)
+    else if(op1_byp_M_D)
       op1_byp_sel_D = 2'd2;
-    else if(op1_byp_W)
+    else if(op1_byp_W_D)
       op1_byp_sel_D = 2'd3;
     else
       op1_byp_sel_D = 2'd0;
@@ -594,15 +591,28 @@ module lab2_proc_ProcAltCtrl
 
   // rs2 bypass select logic
   always_comb begin
-    if(op2_byp_X)
+    if(op2_byp_X_D)
       op2_byp_sel_D = 2'd1;
-    else if(op2_byp_M)
+    else if(op2_byp_M_D)
       op2_byp_sel_D = 2'd2;
-    else if(op2_byp_W)
+    else if(op2_byp_W_D)
       op2_byp_sel_D = 2'd3;
     else
       op2_byp_sel_D = 2'd0;
   end
+
+  logic ostall_load_X_op1_D, ostall_load_X_op2_D;
+
+  // ostall logic for rs1 when previous inst is lw and have RAW dependency
+  assign ostall_load_X_op1_D = val_D && rs1_en_D && val_X && rf_wen_X && 
+      (inst_rs1_D == rf_waddr_X) && (rf_waddr_X != 5'd0) && (inst_X ==? `TINYRV2_INST_LW);
+
+  // ostall logic for rs2 when previous inst is lw and have RAW dependency
+  assign ostall_load_X_op2_D = val_D && rs2_en_D && val_X && rf_wen_X && 
+      (inst_rs2_D == rf_waddr_X) && (rf_waddr_X != 5'd0) && (inst_X ==? `TINYRV2_INST_LW);
+
+  // Final ostall signal
+  assign ostall_D = val_D && ( ostall_mngr2proc_D || ostall_imul_D || ostall_load_X_op1_D || ostall_load_X_op2_D);
 
   // stall and squash in D
   assign stall_D  = val_D && ( ostall_D || ostall_X || ostall_M || ostall_W );
