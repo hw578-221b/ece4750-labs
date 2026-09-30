@@ -554,26 +554,52 @@ module lab2_proc_ProcAltCtrl
   // also we can't squash when stalled!
   assign osquash_D = val_D && !stall_D && is_jal_D;
 
-  logic op1_byp_X, op2_byp_X;
+  logic op1_byp_X, op2_byp_X, op1_byp_M, op2_byp_M, op1_byp_W, op2_byp_W;
 
   // bypass logic from X to D for rs1
   assign op1_byp_X = val_D && rs1_en_D && val_X && rf_wen_X && 
       ( inst_rs1_D == rf_waddr_X ) && (rf_waddr_X != 5'd0);
 
+  // bypass logic from M to D for rs1
+  assign op1_byp_M = val_D && rs1_en_D && val_M && rf_wen_M && 
+      ( inst_rs1_D == rf_waddr_M ) && (rf_waddr_M != 5'd0);
+
+  // bypass logic from W to D for rs1
+  assign op1_byp_W = val_D && rs1_en_D && val_W && rf_wen_W && 
+      ( inst_rs1_D == rf_waddr_W ) && (rf_waddr_W != 5'd0);
+
   // bypass logic from X to D for rs2
   assign op2_byp_X = val_D && rs2_en_D && val_X && rf_wen_X && 
       ( inst_rs2_D == rf_waddr_X ) && (rf_waddr_X != 5'd0);
 
+  // bypass logic from M to D for rs2
+  assign op2_byp_M = val_D && rs2_en_D && val_M && rf_wen_M && 
+      ( inst_rs2_D == rf_waddr_M ) && (rf_waddr_M != 5'd0);
+
+  // bypass logic from W to D for rs2
+  assign op2_byp_W = val_D && rs2_en_D && val_W && rf_wen_W && 
+      ( inst_rs2_D == rf_waddr_W ) && (rf_waddr_W != 5'd0);
+
+  // rs1 bypass select logic
   always_comb begin
     if(op1_byp_X)
       op1_byp_sel_D = 2'd1;
+    else if(op1_byp_M)
+      op1_byp_sel_D = 2'd2;
+    else if(op1_byp_W)
+      op1_byp_sel_D = 2'd3;
     else
       op1_byp_sel_D = 2'd0;
   end
 
+  // rs2 bypass select logic
   always_comb begin
     if(op2_byp_X)
       op2_byp_sel_D = 2'd1;
+    else if(op2_byp_M)
+      op2_byp_sel_D = 2'd2;
+    else if(op2_byp_W)
+      op2_byp_sel_D = 2'd3;
     else
       op2_byp_sel_D = 2'd0;
   end

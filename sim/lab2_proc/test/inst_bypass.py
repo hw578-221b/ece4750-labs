@@ -28,3 +28,51 @@ def gen_bypassX_1_test():
     nop
     nop
   """
+
+def gen_bypassX_2_test():
+  return """
+    csrr x1, mngr2proc, < 5
+    csrr x2, mngr2proc, < 2
+    nop
+    nop
+    add  x3, x1, x2
+    add  x4, x3, x2
+    nop
+    nop
+    nop
+    csrw proc2mngr, x4 > 9
+    nop
+    nop
+    nop
+  """
+
+def gen_bypassX_3_test():
+  return """
+    csrr x1, mngr2proc, < 5
+    csrr x2, mngr2proc, < 2
+    nop
+    add  x3, x1, x2
+    add  x4, x3, x2
+    nop
+    nop
+    nop
+    csrw proc2mngr, x4 > 9
+    nop
+    nop
+    nop
+  """
+
+def gen_bypassX_4_test():
+  return """
+    csrr x1, mngr2proc, < 5
+    csrr x2, mngr2proc, < 2
+    add  x3, x1, x2
+    add  x4, x3, x2
+    nop
+    nop
+    nop
+    csrw proc2mngr, x4 > 9
+    nop
+    nop
+    nop
+  """

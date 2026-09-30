@@ -193,16 +193,18 @@ module lab2_proc_ProcAltDpath
   );
 
   logic [31:0] op1_byp_out, op2_byp_out;
-  logic [31:0] bypass_from_X;
+  logic [31:0] bypass_from_X, bypass_from_M, bypass_from_W;
 
   assign bypass_from_X = ex_result_X;
+  assign bypass_from_M = wb_result_M;
+  assign bypass_from_W = wb_result_W;
 
   vc_Mux4#(32) op1_byp_mux_D
   (
     .in0  (rf_rdata0_D),
     .in1  (bypass_from_X),
-    .in2  (),
-    .in3  (),
+    .in2  (bypass_from_M),
+    .in3  (bypass_from_W),
     .sel  (op1_byp_sel_D),
     .out  (op1_byp_out)
   );
@@ -211,8 +213,8 @@ module lab2_proc_ProcAltDpath
   (
     .in0  (rf_rdata1_D),
     .in1  (bypass_from_X),
-    .in2  (),
-    .in3  (),
+    .in2  (bypass_from_M),
+    .in3  (bypass_from_W),
     .sel  (op2_byp_sel_D),
     .out  (op2_byp_out)
   );
@@ -352,7 +354,7 @@ module lab2_proc_ProcAltDpath
     .reset(reset),
     .istream_val(imul_req_val_D),
     .istream_rdy(imul_req_rdy_D),
-    .istream_msg({rf_rdata0_D, op2_D}),
+    .istream_msg({op1_D, op2_D}),
     .ostream_val(imul_resp_val_X),
     .ostream_rdy(imul_resp_rdy_X),
     .ostream_msg(imul_result_X)

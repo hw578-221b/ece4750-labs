@@ -325,7 +325,7 @@ module lab2_proc_ProcBaseDpath
     .reset(reset),
     .istream_val(imul_req_val_D),
     .istream_rdy(imul_req_rdy_D),
-    .istream_msg({rf_rdata0_D, op2_D}),
+    .istream_msg({op1_D, op2_D}),
     .ostream_val(imul_resp_val_X),
     .ostream_rdy(imul_resp_rdy_X),
     .ostream_msg(imul_result_X)
