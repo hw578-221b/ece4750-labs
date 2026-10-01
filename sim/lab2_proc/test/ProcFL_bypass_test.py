@@ -26,10 +26,12 @@ class Tests:
     cls.ProcType = ProcFL
 
   @pytest.mark.parametrize( "name,test", [
-    asm_test( inst_bypass.gen_bypassX_1_test ),
-    asm_test( inst_bypass.gen_bypassX_2_test ),
-    asm_test( inst_bypass.gen_bypassX_3_test ),
-    asm_test( inst_bypass.gen_bypassX_4_test ),
+    asm_test( inst_bypass.gen_bypass_1_test ),
+    asm_test( inst_bypass.gen_bypass_2_test ),
+    asm_test( inst_bypass.gen_bypass_3_test ),
+    asm_test( inst_bypass.gen_bypass_4_test ),
+    asm_test( inst_bypass.gen_bypass_5_test ),
+    asm_test( inst_bypass.gen_general_1_test),
   ])
 
   def test_bypass( s, name, test ):
