@@ -16,7 +16,8 @@
 
 module lab2_proc_ProcBase
 #(
-  parameter p_num_cores = 1
+  parameter p_num_cores = 1,
+  parameter p_commit    = 0
 )
 (
   input  logic         clk,
@@ -289,11 +290,11 @@ module lab2_proc_ProcBase
     .*
   );
 
+  `ifndef SYNTHESIS
+
   //----------------------------------------------------------------------
   // Line tracing
   //----------------------------------------------------------------------
-
-  `ifndef SYNTHESIS
 
   lab2_proc_tinyrv2_encoding_InstTasks tinyrv2();
 
@@ -398,6 +399,39 @@ module lab2_proc_ProcBase
     .val   (dmem_respstream_val),
     .rdy   (dmem_respstream_rdy)
   );
+
+  //----------------------------------------------------------------------
+  // Retirement monitor
+  //----------------------------------------------------------------------
+
+  integer commit_count;
+
+  always @(posedge clk) begin
+    if(reset) begin
+      commit_count = 0;
+    end
+    else if(p_commit && ctrl.commit_inst) begin // when there is a valid commit
+      commit_count = commit_count + 1;
+      
+      $write(
+        "[Commit %02d]  pc=%08x %s rf_wen=%0b",
+        commit_count,
+        dpath.pc_W_trace,
+        tinyrv2.disasm(ctrl.inst_W),
+        ctrl.rf_wen_W
+      );
+      if (ctrl.rf_wen_W) begin
+        if(ctrl.rf_waddr_W != 5'd0)
+          $display("  rd=x%02d  data=%08x", ctrl.rf_waddr_W, dpath.rf_wdata_W);
+        else
+          $display("  rd=x0 (write ignored)");
+      end
+      else
+        $display("  (no register write)");
+      // pushes the pending output out of the simulator's output buffer to pytest's captured output
+      $fflush();
+    end
+  end
 
   `endif
 

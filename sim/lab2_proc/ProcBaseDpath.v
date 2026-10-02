@@ -406,6 +406,30 @@ module lab2_proc_ProcBaseDpath
    .q      (stats_en_W)
   );
 
+  //----------------------------------------------------------------------
+  // Retirement/commit monitor
+  //----------------------------------------------------------------------
+
+  `ifndef SYNTHESIS
+
+  logic [31:0] pc_M_trace, pc_W_trace;
+
+  always_ff @(posedge clk) begin
+    if(reset) begin
+      pc_M_trace <= 32'b0;
+      pc_W_trace <= 32'b0;
+    end
+    else begin
+      if(reg_en_M)
+        pc_M_trace <= pc_X;
+      
+      if(reg_en_W)
+        pc_W_trace <= pc_M_trace;
+    end
+  end
+
+  `endif /* SYNTHESIS */
+
 endmodule
 
 `endif /* LAB2_PROC_PROC_BASE_DPATH_V */
