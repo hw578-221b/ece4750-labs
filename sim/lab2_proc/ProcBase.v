@@ -401,7 +401,7 @@ module lab2_proc_ProcBase
   );
 
   //----------------------------------------------------------------------
-  // Retirement monitor
+  // Retirement/commit monitor
   //----------------------------------------------------------------------
 
   integer commit_count;
@@ -412,22 +412,27 @@ module lab2_proc_ProcBase
     end
     else if(p_commit && ctrl.commit_inst) begin // when there is a valid commit
       commit_count = commit_count + 1;
-      
-      $write(
-        "[Commit %02d]  pc=%08x %s rf_wen=%0b",
-        commit_count,
-        dpath.pc_W_trace,
-        tinyrv2.disasm(ctrl.inst_W),
-        ctrl.rf_wen_W
-      );
-      if (ctrl.rf_wen_W) begin
-        if(ctrl.rf_waddr_W != 5'd0)
-          $display("  rd=x%02d  data=%08x", ctrl.rf_waddr_W, dpath.rf_wdata_W);
-        else
-          $display("  rd=x0 (write ignored)");
-      end
-      else
-        $display("  (no register write)");
+      $write( "[Commit %02d]  pc=0x%08x %s", commit_count, dpath.pc_W_trace, tinyrv2.disasm(ctrl.inst_W));
+
+      casez(ctrl.inst_W)
+        `TINYRV2_INST_CSRR : $display("  x%02d=0x%08x", ctrl.rf_waddr_W, dpath.mngr2proc_data_W_trace);
+        `TINYRV2_INST_CSRW : $display("  output=0x%08x", dpath.proc2mngr_data);
+        `TINYRV2_INST_LW   : $display("  dmemreq_addr=0x%08x  dmemresp_data=0x%08x", 
+                                dpath.dmem_reqstream_addr_W_trace, dpath.dmem_result_W);
+        `TINYRV2_INST_SW   : $display("  dmemreq_addr=0x%08x  dmemreq_data=0x%08x", 
+                                dpath.dmem_reqstream_addr_W_trace, dpath.dmem_reqstream_data_W_trace);
+        default: begin
+          if (ctrl.rf_wen_W) begin
+            if(ctrl.rf_waddr_W != 5'd0)
+              $display("  rf_wen=1  rd=x%02d  data=0x%08x", ctrl.rf_waddr_W, dpath.rf_wdata_W);
+            else
+              $display("  rd=x0 (register write ignored)");
+          end
+          else
+            $display("  (no register write)");
+        end
+      endcase
+
       // pushes the pending output out of the simulator's output buffer to pytest's captured output
       $fflush();
     end

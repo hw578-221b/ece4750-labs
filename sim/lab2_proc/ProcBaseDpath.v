@@ -197,6 +197,9 @@ module lab2_proc_ProcBaseDpath
   logic [31:0] num_cores;
   assign num_cores = p_num_cores;
 
+  logic [31:0] mngr2proc_data_D_trace;
+  assign mngr2proc_data_D_trace = mngr2proc_data;
+
   // csrr data select mux
   vc_Mux3#(32) csrr_sel_mux_D
   (
@@ -414,17 +417,81 @@ module lab2_proc_ProcBaseDpath
 
   logic [31:0] pc_M_trace, pc_W_trace;
 
+  // PC register carry
   always_ff @(posedge clk) begin
     if(reset) begin
       pc_M_trace <= 32'b0;
       pc_W_trace <= 32'b0;
     end
-    else begin
+    else begin // to be consistent with pipeline stall behavior
       if(reg_en_M)
         pc_M_trace <= pc_X;
-      
       if(reg_en_W)
         pc_W_trace <= pc_M_trace;
+    end
+  end
+
+  logic [31:0] mngr2proc_data_X_trace, mngr2proc_data_M_trace, mngr2proc_data_W_trace;
+
+  // mngr2proc_data register carry
+  always_ff @(posedge clk) begin
+    if(reset) begin
+      mngr2proc_data_X_trace <= 32'b0;
+      mngr2proc_data_M_trace <= 32'b0;
+      mngr2proc_data_W_trace <= 32'b0;
+    end
+    else begin
+      if(reg_en_X)
+        mngr2proc_data_X_trace <= mngr2proc_data_D_trace;
+      if(reg_en_M)
+        mngr2proc_data_M_trace <= mngr2proc_data_X_trace;
+      if(reg_en_W)
+        mngr2proc_data_W_trace <= mngr2proc_data_M_trace;
+    end
+  end
+
+  logic [31:0] dmem_reqstream_data_M_trace, dmem_reqstream_data_W_trace;
+
+  // dmemreq_data register carry
+  always_ff @(posedge clk) begin
+    if(reset) begin
+      dmem_reqstream_data_M_trace <= 32'b0;
+      dmem_reqstream_data_W_trace <= 32'b0;
+    end
+    else begin
+      if(reg_en_M)
+        dmem_reqstream_data_M_trace <= dmem_reqstream_msg_data;
+      if(reg_en_W)
+        dmem_reqstream_data_W_trace <= dmem_reqstream_data_M_trace;
+    end
+  end
+
+  logic [31:0] dmem_reqstream_addr_M_trace, dmem_reqstream_addr_W_trace;
+
+  // dmemreq_addr register carry
+  always_ff @(posedge clk) begin
+    if(reset) begin
+      dmem_reqstream_addr_M_trace <= 32'b0;
+      dmem_reqstream_addr_W_trace <= 32'b0;
+    end
+    else begin
+      if(reg_en_M)
+        dmem_reqstream_addr_M_trace <= dmem_reqstream_msg_addr;
+      if(reg_en_W)
+        dmem_reqstream_addr_W_trace <= dmem_reqstream_addr_M_trace;
+    end
+  end
+
+  logic [31:0] dmem_result_W;
+
+  // dmemresp_data register carry
+  always_ff @(posedge clk) begin
+    if(reset) begin
+      dmem_result_W <= 32'b0;
+    end
+    else begin
+      if(reg_en_W)
+        dmem_result_W <= dmem_result_M;
     end
   end
 
