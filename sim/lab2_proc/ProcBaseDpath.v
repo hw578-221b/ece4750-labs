@@ -431,25 +431,6 @@ module lab2_proc_ProcBaseDpath
     end
   end
 
-  logic [31:0] mngr2proc_data_X_trace, mngr2proc_data_M_trace, mngr2proc_data_W_trace;
-
-  // mngr2proc_data register carry
-  always_ff @(posedge clk) begin
-    if(reset) begin
-      mngr2proc_data_X_trace <= 32'b0;
-      mngr2proc_data_M_trace <= 32'b0;
-      mngr2proc_data_W_trace <= 32'b0;
-    end
-    else begin
-      if(reg_en_X)
-        mngr2proc_data_X_trace <= mngr2proc_data_D_trace;
-      if(reg_en_M)
-        mngr2proc_data_M_trace <= mngr2proc_data_X_trace;
-      if(reg_en_W)
-        mngr2proc_data_W_trace <= mngr2proc_data_M_trace;
-    end
-  end
-
   logic [31:0] dmem_reqstream_data_M_trace, dmem_reqstream_data_W_trace;
 
   // dmemreq_data register carry
