@@ -417,9 +417,9 @@ module lab2_proc_ProcBase
       casez(ctrl.inst_W)
         `TINYRV2_INST_CSRR : $display("  x%02d=0x%08x", ctrl.rf_waddr_W, dpath.rf_wdata_W);
         `TINYRV2_INST_CSRW : $display("  output=0x%08x", dpath.rf_wdata_W);
-        `TINYRV2_INST_LW   : $display("  dmemreq_addr=0x%08x  dmemresp_data=0x%08x", 
+        `TINYRV2_INST_LW   : $display("  req_addr=0x%08x  resp_data=0x%08x", 
                                 dpath.dmem_reqstream_addr_W_trace, dpath.dmem_result_W);
-        `TINYRV2_INST_SW   : $display("  dmemreq_addr=0x%08x  dmemreq_data=0x%08x", 
+        `TINYRV2_INST_SW   : $display("  req_addr=0x%08x  req_data=0x%08x", 
                                 dpath.dmem_reqstream_addr_W_trace, dpath.dmem_reqstream_data_W_trace);
         default: begin
           if (ctrl.rf_wen_W) begin

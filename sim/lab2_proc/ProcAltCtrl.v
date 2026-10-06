@@ -472,50 +472,6 @@ module lab2_proc_ProcAltCtrl
   logic  ostall_mngr2proc_D;
   assign ostall_mngr2proc_D = val_D && mngr2proc_rdy_D && !mngr2proc_val;
 
-  // ostall if write address in X matches rs1 in D
-
-  logic  ostall_waddr_X_rs1_D;
-  // assign ostall_waddr_X_rs1_D
-  //   = rs1_en_D && val_X && rf_wen_X
-  //     && ( inst_rs1_D == rf_waddr_X ) && ( rf_waddr_X != 5'd0 );
-  assign ostall_waddr_X_rs1_D = 0;
-
-  // ostall if write address in M matches rs1 in D
-
-  logic  ostall_waddr_M_rs1_D;
-  assign ostall_waddr_M_rs1_D = 0;
-    // = rs1_en_D && val_M && rf_wen_M
-    //   && ( inst_rs1_D == rf_waddr_M ) && ( rf_waddr_M != 5'd0 );
-
-  // ostall if write address in W matches rs1 in D
-
-  logic  ostall_waddr_W_rs1_D;
-  assign ostall_waddr_W_rs1_D = 0;
-    // = rs1_en_D && val_W && rf_wen_W
-    //   && ( inst_rs1_D == rf_waddr_W ) && ( rf_waddr_W != 5'd0 );
-
-  // ostall if write address in X matches rs2 in D
-
-  logic  ostall_waddr_X_rs2_D;
-  // assign ostall_waddr_X_rs2_D
-  //   = rs2_en_D && val_X && rf_wen_X
-  //     && ( inst_rs2_D == rf_waddr_X ) && ( rf_waddr_X != 5'd0 );
-  assign ostall_waddr_X_rs2_D = 0;
-
-  // ostall if write address in M matches rs2 in D
-
-  logic  ostall_waddr_M_rs2_D;
-  assign ostall_waddr_M_rs2_D = 0;
-    // = rs2_en_D && val_M && rf_wen_M
-    //   && ( inst_rs2_D == rf_waddr_M ) && ( rf_waddr_M != 5'd0 );
-
-  // ostall if write address in W matches rs2 in D
-
-  logic  ostall_waddr_W_rs2_D;
-  assign ostall_waddr_W_rs2_D = 0;
-    // = rs2_en_D && val_W && rf_wen_W
-    //   && ( inst_rs2_D == rf_waddr_W ) && ( rf_waddr_W != 5'd0 );
-
   // Don't use inst_D == TINYRV2_INST_MUL, because The macro contains ? bits
   // "== does not perform wildcard decoding, so that equality can produce X even if inst is MUL
   logic  is_mul_D;
@@ -540,12 +496,6 @@ module lab2_proc_ProcAltCtrl
   // -> mulitplier busy -> ostall (dependency loop) 
   logic stall_other_D;
   assign imul_req_val_D = val_D && !stall_other_D && !squash_D && is_mul_D;
-
-  // Put together ostall signal due to hazards
-  logic  ostall_hazard_D;
-  assign ostall_hazard_D =
-      ostall_waddr_X_rs1_D || ostall_waddr_M_rs1_D || ostall_waddr_W_rs1_D ||
-      ostall_waddr_X_rs2_D || ostall_waddr_M_rs2_D || ostall_waddr_W_rs2_D;
 
   // osquash due to PC jump instruction (jal) in D stage (in order to drop the imem_resp data)
   // also we can't squash when stalled!
@@ -611,8 +561,11 @@ module lab2_proc_ProcAltCtrl
   assign ostall_load_X_op2_D = val_D && rs2_en_D && val_X && rf_wen_X && 
       (inst_rs2_D == rf_waddr_X) && (rf_waddr_X != 5'd0) && (inst_X ==? `TINYRV2_INST_LW);
 
+  logic  ostall_hazard_D;
+  assign ostall_hazard_D = ostall_load_X_op1_D || ostall_load_X_op2_D;
+
   // Final ostall signal
-  assign ostall_D = val_D && ( ostall_mngr2proc_D || ostall_imul_D || ostall_load_X_op1_D || ostall_load_X_op2_D);
+  assign ostall_D = val_D && ( ostall_mngr2proc_D || ostall_imul_D || ostall_hazard_D);
 
   // stall and squash in D
   assign stall_D  = val_D && ( ostall_D || ostall_X || ostall_M || ostall_W );
