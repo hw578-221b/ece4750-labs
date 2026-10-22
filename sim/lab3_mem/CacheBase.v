@@ -51,9 +51,33 @@ module lab3_mem_CacheBase
   output logic          cache2mem_respstream_rdy
 );
 
-  // '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  // LAB TASK: Define wires
-  // '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  // cache request stream
+  logic [3:0] cachereq_type;
+  logic [31:0] cachereq_addr;
+  logic cache_req_en;
+  logic wben_mux_sel;
+
+  // memeory response stream
+  logic memresp_en;
+  logic write_data_mux_sel;
+
+  // SRAM control regs
+  logic tag_array_ren;
+  logic tag_array_wen;
+  logic data_array_ren;
+  logic data_array_wen;
+
+  // memory request stream
+  logic tag_match;
+  logic evict_addr_reg_en;
+  logic memreq_addr_mux_sel;
+  logic [3:0] memreq_type;
+
+  // cache response stream
+  logic read_data_zero_mux_sel;
+  logic read_data_reg_en;
+  logic hit;
+  logic [3:0] cacheresp_type;
 
   //----------------------------------------------------------------------
   // Control
@@ -127,7 +151,7 @@ module lab3_mem_CacheBase
 
     // Display state
 
-    case ( ctrl.state_reg )
+    case ( ctrl.state )
 
       ctrl.STATE_IDLE:              vc_trace.append_str( trace_str, "I " );
       ctrl.STATE_TAG_CHECK:         vc_trace.append_str( trace_str, "TC" );
@@ -149,8 +173,8 @@ module lab3_mem_CacheBase
 
     // Use a "hit" signal in the control unit to display h/m
 
-    if ( ctrl.state_reg == ctrl.STATE_TAG_CHECK ) begin
-      if ( ctrl.hit_TC )
+    if ( ctrl.state == ctrl.STATE_TAG_CHECK ) begin
+      if ( ctrl.hit )
         vc_trace.append_str( trace_str, "h" );
       else
         vc_trace.append_str( trace_str, "m" );
@@ -162,7 +186,7 @@ module lab3_mem_CacheBase
 
     vc_trace.append_str( trace_str, "[" );
     for ( i = 0; i < 16; i = i + 1 ) begin
-      if ( !ctrl.valid_bits.rfile[i] )
+        if ( !ctrl.valid_bits.rfile[i] )
         vc_trace.append_str( trace_str, "   " );
       else begin
         $sformat( str, "%x", dpath.tag_array.mem[i][7:0] );
