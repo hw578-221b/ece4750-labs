@@ -166,18 +166,18 @@ module lab3_mem_CacheBaseCtrl
           next_state = STATE_WRITE_DATA_ACCESS;
         else if(!lookup_hit && !is_dirty)
           next_state = STATE_REFILL_REQUEST;
-        // else if(!lookup_hit && is_dirty && is_valid)
-        //   next_state = STATE_EVICT_PREPARE;
+        else if(!lookup_hit && is_dirty && is_valid)
+          next_state = STATE_EVICT_PREPARE;
       end
-      // STATE_EVICT_PREPARE: next_state = STATE_EVICT_REQUEST;
-      // STATE_EVICT_REQUEST: begin
-      //   if(cache2mem_reqstream_val && cache2mem_reqstream_rdy)
-      //     next_state = STATE_EVICT_WAIT;
-      // end
-      // STATE_EVICT_WAIT: begin
-      //   if(cache2mem_respstream_val && cache2mem_respstream_rdy)
-      //     next_state = STATE_REFILL_REQUEST;
-      // end
+      STATE_EVICT_PREPARE: next_state = STATE_EVICT_REQUEST;
+      STATE_EVICT_REQUEST: begin
+        if(cache2mem_reqstream_val && cache2mem_reqstream_rdy)
+          next_state = STATE_EVICT_WAIT;
+      end
+      STATE_EVICT_WAIT: begin
+        if(cache2mem_respstream_val && cache2mem_respstream_rdy)
+          next_state = STATE_REFILL_REQUEST;
+      end
       STATE_REFILL_REQUEST: begin
         if(cache2mem_reqstream_val && cache2mem_reqstream_rdy)
           next_state = STATE_REFILL_WAIT;
@@ -256,10 +256,10 @@ module lab3_mem_CacheBaseCtrl
   // cacheresp_type logic
   assign cacheresp_type = cachereq_type;
 
-  // // memreq_type!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  // assign memreq_type = (state == STATE_EVICT_REQUEST)? `VC_MEM_REQ_MSG_TYPE_WRITE : 
-  //     ((state == STATE_REFILL_REQUEST)? `VC_MEM_REQ_MSG_TYPE_READ : `VC_MEM_RESP_MSG_TYPE_X);
-  assign memreq_type = (state == STATE_REFILL_REQUEST) ? `VC_MEM_REQ_MSG_TYPE_READ : `VC_MEM_RESP_MSG_TYPE_X;
+  // memreq_type!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  assign memreq_type = (state == STATE_EVICT_REQUEST)? `VC_MEM_REQ_MSG_TYPE_WRITE : 
+      ((state == STATE_REFILL_REQUEST)? `VC_MEM_REQ_MSG_TYPE_READ : `VC_MEM_RESP_MSG_TYPE_X);
+  //assign memreq_type = (state == STATE_REFILL_REQUEST) ? `VC_MEM_REQ_MSG_TYPE_READ : `VC_MEM_RESP_MSG_TYPE_X;
 
   always_comb begin
     case(state)
@@ -268,6 +268,9 @@ module lab3_mem_CacheBaseCtrl
       //                          rdy   val   val rdy  en    sel  en   sel   ren   wen   ren   wen   en    sel    sel   en    in    en    in    en
       STATE_IDLE:              cs( 1,   0,    0,  0,   1,    'x,  1,   'x,   0,    0,    0,    0,    1,    'x,    'x,   1,    0,    0,    0,    0    );
       STATE_TAG_CHECK:         cs( 0,   0,    0,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,    'x,   1,    0,    0,    0,    0    );
+      STATE_EVICT_PREPARE:     cs( 0,   0,    0,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,     0,   1,    0,    0,    0,    0    );
+      STATE_EVICT_REQUEST:     cs( 0,   0,    1,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    0,     0,    'x,   0,    0,    0,    0,    0    );
+      STATE_EVICT_WAIT:        cs( 0,   0,    0,  1,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,    'x,   1,    0,    0,    0,    0    );
       STATE_REFILL_REQUEST:    cs( 0,   0,    1,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,     1,    'x,   1,    0,    0,    0,    0    );
       STATE_REFILL_WAIT:       cs( 0,   0,    0,  1,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,    'x,   1,    0,    0,    0,    0    );
       STATE_REFILL_UPDATE:     cs( 0,   0,    0,  0,   0,     1,  0,    1,   0,    1,    0,    1,    1,    'x,    'x,   1,    1,    1,    0,    1    );
