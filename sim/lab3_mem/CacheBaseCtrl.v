@@ -79,53 +79,6 @@ module lab3_mem_CacheBaseCtrl
   localparam STATE_WAIT              = 5'd11;
 
   //----------------------------------------------------------------------
-  // reset and present state logic
-  //----------------------------------------------------------------------
-  logic [4:0] state, next_state;
-
-  always_ff @(posedge clk) begin
-    if(reset) begin
-      state <= STATE_IDLE;
-    end
-    else
-      state <= next_state;
-  end
-
-  //----------------------------------------------------------------------
-  // state transition logic
-  //----------------------------------------------------------------------
-
-  logic is_read, is_write, is_init;
-
-  assign is_read  = (cachereq_type == `VC_MEM_REQ_MSG_TYPE_READ);
-  assign is_write = (cachereq_type == `VC_MEM_REQ_MSG_TYPE_WRITE);
-  assign is_init  = (cachereq_type == `VC_MEM_REQ_MSG_TYPE_WRITE_INIT);
-
-  always_comb begin
-    next_state = state; // default assignment
-    case(state)
-      STATE_IDLE: begin
-        if(proc2cache_reqstream_val && proc2cache_reqstream_rdy) begin
-          next_state = STATE_TAG_CHECK;
-        end
-      end
-      STATE_TAG_CHECK: begin
-        if(is_init)
-            next_state = STATE_INIT_DATA_ACCESS;
-      end
-      STATE_INIT_DATA_ACCESS: begin
-        next_state = STATE_WAIT;
-      end
-      STATE_WAIT: begin
-        if(proc2cache_respstream_val && proc2cache_respstream_rdy)
-          next_state = STATE_IDLE;
-      end
-      default:
-        next_state = STATE_IDLE;
-    endcase
-  end
-
-  //----------------------------------------------------------------------
   // valid & dirty bits implementation
   //----------------------------------------------------------------------
   logic [3:0] word_offset, index;
@@ -169,6 +122,60 @@ module lab3_mem_CacheBaseCtrl
     .write_addr (index),
     .write_data (dirty_bit_in)
   );
+
+  //----------------------------------------------------------------------
+  // reset and present state logic
+  //----------------------------------------------------------------------
+  logic [4:0] state, next_state;
+
+  always_ff @(posedge clk) begin
+    if(reset) begin
+      state <= STATE_IDLE;
+    end
+    else
+      state <= next_state;
+  end
+
+  //----------------------------------------------------------------------
+  // state transition logic
+  //----------------------------------------------------------------------
+
+  logic is_read, is_write, is_init;
+
+  assign is_read  = (cachereq_type == `VC_MEM_REQ_MSG_TYPE_READ);
+  assign is_write = (cachereq_type == `VC_MEM_REQ_MSG_TYPE_WRITE);
+  assign is_init  = (cachereq_type == `VC_MEM_REQ_MSG_TYPE_WRITE_INIT);
+
+  always_comb begin
+    next_state = state; // default assignment
+    case(state)
+      STATE_IDLE: begin
+        if(proc2cache_reqstream_val && proc2cache_reqstream_rdy) begin
+          next_state = STATE_TAG_CHECK;
+        end
+      end
+      STATE_TAG_CHECK: begin
+        if(is_init)
+          next_state = STATE_INIT_DATA_ACCESS;
+        else if(hit && is_read)
+          next_state = STATE_READ_DATA_ACCESS;
+        else
+          next_state = STATE_TAG_CHECK;
+      end
+      STATE_INIT_DATA_ACCESS: begin
+        next_state = STATE_WAIT;
+      end
+      STATE_READ_DATA_ACCESS: begin
+        next_state = STATE_WAIT;
+      end
+      STATE_WAIT: begin
+        if(proc2cache_respstream_val && proc2cache_respstream_rdy)
+          next_state = STATE_IDLE;
+      end
+      default:
+        next_state = STATE_IDLE;
+    endcase
+  end
 
   //----------------------------------------------------------------------
   // FSM output logic (combinational, for control signals)
@@ -239,7 +246,9 @@ module lab3_mem_CacheBaseCtrl
       STATE_IDLE:              cs( 1,   0,    0,  0,   1,    'x,  1,   'x,   0,    0,    0,    0,    1,    'x,    'x,   1,    0,    0,    0,    0    );
       STATE_TAG_CHECK:         cs( 0,   0,    0,  0,   0,    'x,  0,   'x,   1,    0,    1,    0,    1,    'x,    'x,   1,    0,    0,    0,    0    );
       STATE_INIT_DATA_ACCESS:  cs( 0,   0,    0,  0,   0,     0,  0,    0,   0,    1,    0,    1,    1,    'x,     1,   1,    1,    1,    0,    1    );
-      STATE_WAIT:              cs( 0,   1,    0,  0,   0,     0,  0,    0,   1,    0,    1,    0,    1,    'x,     1,   1,    0,    1,    0,    0    );
+      STATE_READ_DATA_ACCESS:  cs( 0,   0,    0,  0,   0,    'x,  0,   'x,   1,    0,    1,    0,    1,    'x,     0,   1,    0,    0,    0,    0    );
+      STATE_WAIT:              cs( 0,   1,    0,  0,   0,     0,  0,    0,   1,    0,    1,    0,    1,    'x,    'x,   0,    0,    0,    0,    0    );
+      
       default:                 cs( 0,   0,    0,  0,   0,    'x,  0,   'x,   0,    0,    0,    0,    0,    'x,    'x,   0,    0,    0,    0,    0    );        
     endcase
   end

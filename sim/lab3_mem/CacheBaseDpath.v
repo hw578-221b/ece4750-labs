@@ -121,7 +121,9 @@ module lab3_mem_CacheBaseDpath
 
   generate
     if (p_num_banks == 1) begin
-
+      assign word_offset = cachereq_addr[3:0];
+      assign index = cachereq_addr[7:4];
+      assign tag = cachereq_addr[31:8];
     end
     else if (p_num_banks == 4) begin
       assign word_offset = cachereq_addr[3:0];
@@ -140,9 +142,9 @@ module lab3_mem_CacheBaseDpath
   // replicate word that cpu want to write to cache 4 times, so cache line could later where to write the word by wben_mux_out
   assign cpu_write_data = {cachereq_data, cachereq_data, cachereq_data, cachereq_data};
 
-  logic [31:0] memresp_data;
+  logic [127:0] memresp_data;
 
-  vc_EnResetReg#(32) memresp_data_reg
+  vc_EnResetReg#(128) memresp_data_reg
   (
     .clk    (clk),
     .reset  (reset),
@@ -151,9 +153,9 @@ module lab3_mem_CacheBaseDpath
     .q      (memresp_data)
   );
   
-  logic [31:0] write_data_mux_out;
+  logic [127:0] write_data_mux_out;
 
-  vc_Mux2#(16) write_data_mux
+  vc_Mux2#(128) write_data_mux
   (
     .in0  (cpu_write_data),
     .in1  (memresp_data),
@@ -227,10 +229,10 @@ module lab3_mem_CacheBaseDpath
 
   vc_Mux4#(32) word_select_mux
   (
-    .in0  (read_data_reg_q[127:96]),
-    .in1  (read_data_reg_q[95:64]),
-    .in2  (read_data_reg_q[63:32]),
-    .in3  (read_data_reg_q[31:0]),
+    .in0  (read_data_reg_q[31:0]),
+    .in1  (read_data_reg_q[63:32]),
+    .in2  (read_data_reg_q[95:64]),
+    .in3  (read_data_reg_q[127:96]),
     .sel  (word_select_mux_sel),
     .out  (word_sel_mux_out)
   );
@@ -273,9 +275,9 @@ module lab3_mem_CacheBaseDpath
   // read from mem on a read/write miss and a clean line
   generate
     if(p_num_banks == 1)
-      assign mk_addr_read = {tag, index, 4'b000};
+      assign mk_addr_read = {tag, index, 4'b0000};
     else if (p_num_banks == 4)
-      assign mk_addr_read = {tag[23:2], index, bank, 4'b000};
+      assign mk_addr_read = {tag[23:2], index, bank, 4'b0000};
   endgenerate
 
   logic [31:0] memreq_addr_mux_out;
