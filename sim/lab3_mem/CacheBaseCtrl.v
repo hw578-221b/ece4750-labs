@@ -146,28 +146,53 @@ module lab3_mem_CacheBaseCtrl
   assign is_write = (cachereq_type == `VC_MEM_REQ_MSG_TYPE_WRITE);
   assign is_init  = (cachereq_type == `VC_MEM_REQ_MSG_TYPE_WRITE_INIT);
 
+  logic lookup_hit;
+  // Use inside TAG CHECK state to determine next_state transition
+  assign lookup_hit = is_init? 1'b0 : (is_valid && tag_match);
+
   always_comb begin
     next_state = state; // default assignment
     case(state)
       STATE_IDLE: begin
-        if(proc2cache_reqstream_val && proc2cache_reqstream_rdy) begin
+        if(proc2cache_reqstream_val && proc2cache_reqstream_rdy)
           next_state = STATE_TAG_CHECK;
-        end
       end
       STATE_TAG_CHECK: begin
         if(is_init)
           next_state = STATE_INIT_DATA_ACCESS;
-        else if(hit && is_read)
+        else if(lookup_hit && is_read)
           next_state = STATE_READ_DATA_ACCESS;
-        else
-          next_state = STATE_TAG_CHECK;
+        else if(lookup_hit && is_write)
+          next_state = STATE_WRITE_DATA_ACCESS;
+        else if(!lookup_hit && !is_dirty)
+          next_state = STATE_REFILL_REQUEST;
+        // else if(!lookup_hit && is_dirty && is_valid)
+        //   next_state = STATE_EVICT_PREPARE;
       end
-      STATE_INIT_DATA_ACCESS: begin
-        next_state = STATE_WAIT;
+      // STATE_EVICT_PREPARE: next_state = STATE_EVICT_REQUEST;
+      // STATE_EVICT_REQUEST: begin
+      //   if(cache2mem_reqstream_val && cache2mem_reqstream_rdy)
+      //     next_state = STATE_EVICT_WAIT;
+      // end
+      // STATE_EVICT_WAIT: begin
+      //   if(cache2mem_respstream_val && cache2mem_respstream_rdy)
+      //     next_state = STATE_REFILL_REQUEST;
+      // end
+      STATE_REFILL_REQUEST: begin
+        if(cache2mem_reqstream_val && cache2mem_reqstream_rdy)
+          next_state = STATE_REFILL_WAIT;
       end
-      STATE_READ_DATA_ACCESS: begin
-        next_state = STATE_WAIT;
+      STATE_REFILL_WAIT: begin
+        if(cache2mem_respstream_val && cache2mem_respstream_rdy)
+          next_state = STATE_REFILL_UPDATE;
       end
+      STATE_REFILL_UPDATE: begin
+        if(is_read) next_state = STATE_READ_DATA_ACCESS;
+        else if(is_write) next_state = STATE_WRITE_DATA_ACCESS;
+      end
+      STATE_READ_DATA_ACCESS: next_state = STATE_WAIT;
+      STATE_WRITE_DATA_ACCESS: next_state = STATE_WAIT;
+      STATE_INIT_DATA_ACCESS: next_state = STATE_WAIT;
       STATE_WAIT: begin
         if(proc2cache_respstream_val && proc2cache_respstream_rdy)
           next_state = STATE_IDLE;
@@ -227,16 +252,14 @@ module lab3_mem_CacheBaseCtrl
     dirty_bits_write_en       = cs_dirty_bits_write_en;
   end
   endtask
-
-  // hit logic
-  assign hit = is_init? 1'b0 : (is_valid && tag_match);
    
   // cacheresp_type logic
   assign cacheresp_type = cachereq_type;
 
-  // // memreq_type???????????????????????????
-  // assign memreq_type = (state == `STATE_EVICT_REQUEST)? `VC_MEM_REQ_MSG_TYPE_WRITE : 
-  //     ((state == `STATE_REFILL_REQUEST)? `VC_MEM_REQ_MSG_TYPE_READ : `VC_MEM_RESP_MSG_TYPE_X);
+  // // memreq_type!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // assign memreq_type = (state == STATE_EVICT_REQUEST)? `VC_MEM_REQ_MSG_TYPE_WRITE : 
+  //     ((state == STATE_REFILL_REQUEST)? `VC_MEM_REQ_MSG_TYPE_READ : `VC_MEM_RESP_MSG_TYPE_X);
+  assign memreq_type = (state == STATE_REFILL_REQUEST) ? `VC_MEM_REQ_MSG_TYPE_READ : `VC_MEM_RESP_MSG_TYPE_X;
 
   always_comb begin
     case(state)
@@ -244,13 +267,30 @@ module lab3_mem_CacheBaseCtrl
       //                          req   resp  req resp req   mux  resp mux   array array array array addr  addr   zero  reg   bit   write bit   write
       //                          rdy   val   val rdy  en    sel  en   sel   ren   wen   ren   wen   en    sel    sel   en    in    en    in    en
       STATE_IDLE:              cs( 1,   0,    0,  0,   1,    'x,  1,   'x,   0,    0,    0,    0,    1,    'x,    'x,   1,    0,    0,    0,    0    );
-      STATE_TAG_CHECK:         cs( 0,   0,    0,  0,   0,    'x,  0,   'x,   1,    0,    1,    0,    1,    'x,    'x,   1,    0,    0,    0,    0    );
-      STATE_INIT_DATA_ACCESS:  cs( 0,   0,    0,  0,   0,     0,  0,    0,   0,    1,    0,    1,    1,    'x,     1,   1,    1,    1,    0,    1    );
-      STATE_READ_DATA_ACCESS:  cs( 0,   0,    0,  0,   0,    'x,  0,   'x,   1,    0,    1,    0,    1,    'x,     0,   1,    0,    0,    0,    0    );
-      STATE_WAIT:              cs( 0,   1,    0,  0,   0,     0,  0,    0,   1,    0,    1,    0,    1,    'x,    'x,   0,    0,    0,    0,    0    );
+      STATE_TAG_CHECK:         cs( 0,   0,    0,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,    'x,   1,    0,    0,    0,    0    );
+      STATE_REFILL_REQUEST:    cs( 0,   0,    1,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,     1,    'x,   1,    0,    0,    0,    0    );
+      STATE_REFILL_WAIT:       cs( 0,   0,    0,  1,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,    'x,   1,    0,    0,    0,    0    );
+      STATE_REFILL_UPDATE:     cs( 0,   0,    0,  0,   0,     1,  0,    1,   0,    1,    0,    1,    1,    'x,    'x,   1,    1,    1,    0,    1    );
+      STATE_READ_DATA_ACCESS:  cs( 0,   0,    0,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,     0,   1,    0,    0,    0,    0    );
+      STATE_WRITE_DATA_ACCESS: cs( 0,   0,    0,  0,   0,     0,  1,    0,   0,    1,    0,    1,    1,    'x,    'x,   1,    0,    0,    1,    1    );
+      STATE_INIT_DATA_ACCESS:  cs( 0,   0,    0,  0,   0,     0,  1,    0,   0,    1,    0,    1,    1,    'x,    'x,   1,    1,    1,    0,    1    );
+      STATE_WAIT:              cs( 0,   1,    0,  0,   0,     0,  1,    0,   1,    0,    1,    0,    1,    'x,    'x,   0,    0,    0,    0,    0    );
       
       default:                 cs( 0,   0,    0,  0,   0,    'x,  0,   'x,   0,    0,    0,    0,    0,    'x,    'x,   0,    0,    0,    0,    0    );        
     endcase
+  end
+
+  //----------------------------------------------------------------------
+  // FSM output logic (sequential, for hit signal)
+  //----------------------------------------------------------------------
+
+  always_ff @(posedge clk) begin
+    if(reset)
+      hit <= 1'b0;
+    else if(is_init)
+      hit <= 1'b0;
+    else if(state == STATE_TAG_CHECK)
+      hit <= lookup_hit;
   end
 
 endmodule
