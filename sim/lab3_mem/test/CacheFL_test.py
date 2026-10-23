@@ -4,7 +4,7 @@
 
 import pytest
 
-from random import seed, randint
+from random import seed, randint, choice
 
 from pymtl3 import *
 from pymtl3.stdlib.mem        import MemMsgType
@@ -77,6 +77,14 @@ def data_64B():
 def data_512B():
   data = []
   for i in range(128):
+    data.extend([0x00001000+i*4,0xabcd1000+i*4])
+  return data
+
+# 2048B of sequential data
+
+def data_2048B():
+  data = []
+  for i in range(512):
     data.extend([0x00001000+i*4,0xabcd1000+i*4])
   return data
 
@@ -624,9 +632,41 @@ def evict_multi_cacheline():
     req( 'rd', 0xf, 0x10f0, 0, 0          ), resp( 'rd', 0xf, 0,   0,  0x1f1f1f1f ),
   ]
 
-# ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-# LAB TASK: Add more directed test cases
-# ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+def capacity_misses():
+  return [
+    #    type  opq  addr   len data                type  opq  test len data
+    req( 'wr', 0x0, 0x1000, 0, 0x10101010 ), resp( 'wr', 0x0, 0,   0,  0          ),
+    req( 'wr', 0x1, 0x1010, 0, 0x11111111 ), resp( 'wr', 0x1, 0,   0,  0          ),
+    req( 'wr', 0x2, 0x1020, 0, 0x12121212 ), resp( 'wr', 0x2, 0,   0,  0          ),
+    req( 'wr', 0x3, 0x1030, 0, 0x13131313 ), resp( 'wr', 0x3, 0,   0,  0          ),
+    req( 'wr', 0x4, 0x1040, 0, 0x14141414 ), resp( 'wr', 0x4, 0,   0,  0          ),
+    req( 'wr', 0x5, 0x1050, 0, 0x15151515 ), resp( 'wr', 0x5, 0,   0,  0          ),
+    req( 'wr', 0x6, 0x1060, 0, 0x16161616 ), resp( 'wr', 0x6, 0,   0,  0          ),
+    req( 'wr', 0x7, 0x1070, 0, 0x17171717 ), resp( 'wr', 0x7, 0,   0,  0          ),
+    req( 'wr', 0x8, 0x1080, 0, 0x18181818 ), resp( 'wr', 0x8, 0,   0,  0          ),
+    req( 'wr', 0x9, 0x1090, 0, 0x19191919 ), resp( 'wr', 0x9, 0,   0,  0          ),
+    req( 'wr', 0xa, 0x10a0, 0, 0x1a1a1a1a ), resp( 'wr', 0xa, 0,   0,  0          ),
+    req( 'wr', 0xb, 0x10b0, 0, 0x1b1b1b1b ), resp( 'wr', 0xb, 0,   0,  0          ),
+    req( 'wr', 0xc, 0x10c0, 0, 0x1c1c1c1c ), resp( 'wr', 0xc, 0,   0,  0          ),
+    req( 'wr', 0xd, 0x10d0, 0, 0x1d1d1d1d ), resp( 'wr', 0xd, 0,   0,  0          ),
+    req( 'wr', 0xe, 0x10e0, 0, 0x1e1e1e1e ), resp( 'wr', 0xe, 0,   0,  0          ),
+    req( 'wr', 0xf, 0x10f0, 0, 0x1f1f1f1f ), resp( 'wr', 0xf, 0,   0,  0          ),
+
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1100 ), # capacity
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x10101010 ), # assume LRU
+  ]
+
+def conflict_misses():
+  return [
+    #    type  opq  addr   len data                type  opq  test len data
+    req( 'wr', 0x0, 0x1000, 0, 0x10101010 ), resp( 'wr', 0x0, 0,   0,  0          ),
+    req( 'wr', 0x1, 0x1010, 0, 0x11111111 ), resp( 'wr', 0x1, 0,   0,  0          ),
+    req( 'wr', 0x2, 0x1080, 0, 0x18181818 ), resp( 'wr', 0x2, 0,   0,  0          ),
+    req( 'wr', 0x3, 0x1090, 0, 0x19191919 ), resp( 'wr', 0x3, 0,   0,  0          ),
+
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1100 ), # conflicts
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x10101010 ),
+  ]
 
 #-------------------------------------------------------------------------
 # Generic tests
@@ -677,9 +717,10 @@ test_case_table_generic = mk_test_case_table([
   [ "evict_multi_word_sink_delay",      evict_multi_word,           data_512B,    0.9,  3,  0,  10   ],
   [ "evict_multi_word_src_delay",       evict_multi_word,           data_512B,    0.9,  3,  10, 0    ],
 
-  # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  # LAB TASK: Add more entries to test case table
-  # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  [ "conflict_misses",                  conflict_misses,            data_512B,    0.0,  0,  0,  0    ],
+  [ "capacity_misses",                  capacity_misses,            data_512B,    0.0,  0,  0,  0    ],
+  [ "capacity_misses_sink_delay",       capacity_misses,            data_512B,    0.9,  3,  0,  10   ],
+  [ "capacity_misses_src_delay",        capacity_misses,            data_512B,    0.9,  3,  10, 0    ],
 ])
 
 @pytest.mark.parametrize( **test_case_table_generic )
@@ -690,21 +731,90 @@ def test_generic( test_params, cmdline_opts ):
 # Test Case with Random Addresses and Data
 #-------------------------------------------------------------------------
 
-# ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-# LAB TASK: Add random test cases
-# ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+def random_addr_rd_data():
+  data = data_random()
+  mem = dict(zip(data[::2], data[1::2]))
+  msgs = []
+
+  for i in range(0,101):
+    rand_addr = 0x00001000 + 4 * randint(0, 255)
+    msgs.extend([
+      req( 'rd', 0x0, rand_addr, 0, 0 ), resp( 'rd', 0x0, 0, 0, mem[rand_addr] ),
+    ])
+
+  return msgs
+
+def random_addr_wr_random_data():
+  data = data_random()
+  mem = dict(zip(data[::2], data[1::2]))
+  msgs = []
+
+  for i in range(0,101):
+    rand_addr = 0x00001000 + 4 * randint(0, 255)
+    rand_data = randint(0,0xffffffff)
+    msgs.extend([
+      req( 'wr', 0x0, rand_addr, 0, rand_data ), resp( 'wr', 0x0, 0, 0, 0 ),
+      req( 'rd', 0x0, rand_addr, 0, 0 ), resp( 'rd', 0x0, 0, 0, rand_data ),
+    ])
+
+  return msgs
+
+def random_addr_reqtype_data():
+  data = data_random()
+  mem = dict(zip(data[::2], data[1::2]))
+  msgs = []
+
+  for i in range(0,201):
+    type = choice(['rd', 'wr'])
+    rand_addr = 0x00001000 + 4 * randint(0, 255)
+    rand_data = randint(0,0xffffffff)
+    if(type == 'rd'):
+      msgs.extend([
+        req( type, 0x0, rand_addr, 0, 0 ), resp( type, 0x0, 0, 0, mem[rand_addr] ),
+      ])
+    elif(type == 'wr'):
+      msgs.extend([
+        req( type, 0x0, rand_addr, 0, rand_data ), resp( type, 0x0, 0, 0, 0 ),
+      ])
+      mem[rand_addr] = rand_data
+
+  return msgs
+
+def stride_random_reqtype_data():
+  data = data_random()
+  mem = dict(zip(data[::2], data[1::2]))
+  msgs = []
+
+  for i in range(0,201):
+    type = choice(['rd', 'wr'])
+    addr = 0x00001000 + 4 * i
+    rand_data = randint(0,0xffffffff)
+    if(type == 'rd'):
+      msgs.extend([
+        req( type, 0x0, addr, 0, 0 ), resp( type, 0x0, 0, 0, mem[addr] ),
+      ])
+    elif(type == 'wr'):
+      msgs.extend([
+        req( type, 0x0, addr, 0, rand_data ), resp( type, 0x0, 0, 0, 0 ),
+        req( 'rd', 0x0, addr, 0, 0 ), resp( 'rd', 0x0, 0, 0, rand_data ),
+      ])
+
+  return msgs
 
 test_case_table_random = mk_test_case_table([
-  (                        "msg_func       mem_data_func stall lat src sink"),
-
-  # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  # LAB TASK: Add more entries to test case table
-  # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  (                                       "msg_func                     mem_data_func   stall lat src  sink"),
+  [ "random_addr_rd_data",                 random_addr_rd_data,         data_random,    0.0,  0,  0,   0    ],
+  [ "random_addr_wr_random_data",          random_addr_wr_random_data,  data_random,    0.0,  0,  0,   0    ],
+  [ "random_addr_reqtype_data",            random_addr_reqtype_data,    data_random,    0.0,  0,  0,   0    ],
+  [ "stride_random_reqtype_data",          stride_random_reqtype_data,  data_random,    0.0,  0,  0,   0    ],
+  [ "random_addr_reqtype_data_src_delay",  random_addr_reqtype_data,    data_random,    0.9,  3,  10,  0    ],
+  [ "random_addr_reqtype_data_sink_delay", random_addr_reqtype_data,    data_random,    0.9,  3,  0,   10   ],
 ])
 
 @pytest.mark.parametrize( **test_case_table_random )
 def test_random( test_params, cmdline_opts ):
   run_test( CacheFL(), test_params, cmdline_opts, cmp_wo_test_field )
+
 
 #-------------------------------------------------------------------------
 # Test Cases for Direct Mapped
@@ -713,6 +823,85 @@ def test_random( test_params, cmdline_opts ):
 # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 # LAB TASK: Add directed test cases explicitly for direct mapped cache
 # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+def capacity_misses_dmap():
+  return [
+    #    type  opq  addr   len data                type  opq  test len data
+    req( 'wr', 0x0, 0x1000, 0, 0x10101010 ), resp( 'wr', 0x0, 0,   0,  0          ),
+    req( 'wr', 0x1, 0x1010, 0, 0x11111111 ), resp( 'wr', 0x1, 0,   0,  0          ),
+    req( 'wr', 0x2, 0x1020, 0, 0x12121212 ), resp( 'wr', 0x2, 0,   0,  0          ),
+    req( 'wr', 0x3, 0x1030, 0, 0x13131313 ), resp( 'wr', 0x3, 0,   0,  0          ),
+    req( 'wr', 0x4, 0x1040, 0, 0x14141414 ), resp( 'wr', 0x4, 0,   0,  0          ),
+    req( 'wr', 0x5, 0x1050, 0, 0x15151515 ), resp( 'wr', 0x5, 0,   0,  0          ),
+    req( 'wr', 0x6, 0x1060, 0, 0x16161616 ), resp( 'wr', 0x6, 0,   0,  0          ),
+    req( 'wr', 0x7, 0x1070, 0, 0x17171717 ), resp( 'wr', 0x7, 0,   0,  0          ),
+    req( 'wr', 0x8, 0x1080, 0, 0x18181818 ), resp( 'wr', 0x8, 0,   0,  0          ),
+    req( 'wr', 0x9, 0x1090, 0, 0x19191919 ), resp( 'wr', 0x9, 0,   0,  0          ),
+    req( 'wr', 0xa, 0x10a0, 0, 0x1a1a1a1a ), resp( 'wr', 0xa, 0,   0,  0          ),
+    req( 'wr', 0xb, 0x10b0, 0, 0x1b1b1b1b ), resp( 'wr', 0xb, 0,   0,  0          ),
+    req( 'wr', 0xc, 0x10c0, 0, 0x1c1c1c1c ), resp( 'wr', 0xc, 0,   0,  0          ),
+    req( 'wr', 0xd, 0x10d0, 0, 0x1d1d1d1d ), resp( 'wr', 0xd, 0,   0,  0          ),
+    req( 'wr', 0xe, 0x10e0, 0, 0x1e1e1e1e ), resp( 'wr', 0xe, 0,   0,  0          ),
+    req( 'wr', 0xf, 0x10f0, 0, 0x1f1f1f1f ), resp( 'wr', 0xf, 0,   0,  0          ),
+
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1100 ), # capacity
+    req( 'rd', 0x0, 0x1200, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1200 ), # capacity
+    req( 'rd', 0x0, 0x1110, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1110 ), # capacity
+    req( 'rd', 0x0, 0x1210, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1210 ), # capacity
+    req( 'rd', 0x0, 0x1120, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1120 ), # capacity
+    req( 'rd', 0x0, 0x1220, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1220 ), # capacity
+    req( 'rd', 0x0, 0x1130, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1130 ), # capacity
+    req( 'rd', 0x0, 0x1230, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1230 ), # capacity
+    req( 'rd', 0x0, 0x1140, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1140 ), # capacity
+    req( 'rd', 0x0, 0x1240, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1240 ), # capacity
+    req( 'rd', 0x0, 0x1150, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1150 ), # capacity
+    req( 'rd', 0x0, 0x1250, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1250 ), # capacity
+    req( 'rd', 0x0, 0x1160, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1160 ), # capacity
+    req( 'rd', 0x0, 0x1260, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1260 ), # capacity
+    req( 'rd', 0x0, 0x1170, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1170 ), # capacity
+    req( 'rd', 0x0, 0x1270, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1270 ), # capacity
+
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x10101010 ),
+    req( 'rd', 0x0, 0x1080, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x18181818 ), # difference
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1100 ), # difference
+    req( 'rd', 0x0, 0x1010, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x11111111 ),
+    req( 'rd', 0x0, 0x1090, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x19191919 ), # difference
+    req( 'rd', 0x0, 0x1110, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1110 ), # difference
+    req( 'rd', 0x0, 0x1020, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x12121212 ),
+    req( 'rd', 0x0, 0x10a0, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x1a1a1a1a ), # difference
+    req( 'rd', 0x0, 0x1120, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1120 ), # difference
+    req( 'rd', 0x0, 0x1030, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x13131313 ),
+    req( 'rd', 0x0, 0x10b0, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x1b1b1b1b ), # difference
+    req( 'rd', 0x0, 0x1130, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1130 ), # difference
+    req( 'rd', 0x0, 0x1040, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x14141414 ),
+    req( 'rd', 0x0, 0x10c0, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x1c1c1c1c ), # difference
+    req( 'rd', 0x0, 0x1140, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1140 ), # difference
+    req( 'rd', 0x0, 0x1050, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x15151515 ),
+    req( 'rd', 0x0, 0x10d0, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x1d1d1d1d ), # difference
+    req( 'rd', 0x0, 0x1150, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1150 ), # difference
+    req( 'rd', 0x0, 0x1060, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x16161616 ),
+    req( 'rd', 0x0, 0x10e0, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x1e1e1e1e ), # difference
+    req( 'rd', 0x0, 0x1160, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1160 ), # difference
+    req( 'rd', 0x0, 0x1070, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x17171717 ),
+    req( 'rd', 0x0, 0x10f0, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x1f1f1f1f ), # difference
+    req( 'rd', 0x0, 0x1170, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1170 ), # difference
+  ]
+
+def conflict_misses_dmap():
+  return [
+    #    type  opq  addr   len data                type  opq  test len data
+    req( 'wr', 0x0, 0x1000, 0, 0x10101010 ), resp( 'wr', 0x0, 0,   0,  0          ),
+    req( 'wr', 0x1, 0x1010, 0, 0x11111111 ), resp( 'wr', 0x1, 0,   0,  0          ),
+    req( 'wr', 0x2, 0x1080, 0, 0x18181818 ), resp( 'wr', 0x2, 0,   0,  0          ),
+    req( 'wr', 0x3, 0x1090, 0, 0x19191919 ), resp( 'wr', 0x3, 0,   0,  0          ),
+
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1100 ), # conflicts
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x10101010 ),
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1100 ), # difference
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x10101010 ), # difference
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1100 ), # difference
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x10101010 ), # difference
+  ]
+
 
 test_case_table_dmap = mk_test_case_table([
   (                                   "msg_func                         mem_data_func stall lat src sink"),
@@ -720,11 +909,16 @@ test_case_table_dmap = mk_test_case_table([
   # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
   # LAB TASK: Add more entries to test case table
   # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  [ "capacity_misses_dmap",            capacity_misses_dmap,            data_2048B,   0.0,  0,  0,  0    ],
+  [ "conflict_misses_dmap",            conflict_misses_dmap,            data_2048B,   0.0,  0,  0,  0    ],
+  [ "capacity_misses_dmap_src_delay",  capacity_misses_dmap,            data_2048B,   0.9,  5,  10, 0    ],
+  [ "capacity_misses_dmap_sink_delay", capacity_misses_dmap,            data_2048B,   0.9,  5,  0,  10   ],
 ])
 
 @pytest.mark.parametrize( **test_case_table_dmap )
 def test_dmap( test_params, cmdline_opts ):
   run_test( CacheFL(), test_params, cmdline_opts, cmp_wo_test_field )
+
 
 #-------------------------------------------------------------------------
 # Test Cases for Set Associative
@@ -733,6 +927,121 @@ def test_dmap( test_params, cmdline_opts ):
 # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 # LAB TASK: Add directed test cases explicitly for set associative cache
 # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+def capacity_misses_sassoc():
+  return [
+    #    type  opq  addr   len data                type  opq  test len data
+    req( 'wr', 0x0, 0x1000, 0, 0x10101010 ), resp( 'wr', 0x0, 0,   0,  0          ),
+    req( 'wr', 0x1, 0x1010, 0, 0x11111111 ), resp( 'wr', 0x1, 0,   0,  0          ),
+    req( 'wr', 0x2, 0x1020, 0, 0x12121212 ), resp( 'wr', 0x2, 0,   0,  0          ),
+    req( 'wr', 0x3, 0x1030, 0, 0x13131313 ), resp( 'wr', 0x3, 0,   0,  0          ),
+    req( 'wr', 0x4, 0x1040, 0, 0x14141414 ), resp( 'wr', 0x4, 0,   0,  0          ),
+    req( 'wr', 0x5, 0x1050, 0, 0x15151515 ), resp( 'wr', 0x5, 0,   0,  0          ),
+    req( 'wr', 0x6, 0x1060, 0, 0x16161616 ), resp( 'wr', 0x6, 0,   0,  0          ),
+    req( 'wr', 0x7, 0x1070, 0, 0x17171717 ), resp( 'wr', 0x7, 0,   0,  0          ),
+    req( 'wr', 0x8, 0x1080, 0, 0x18181818 ), resp( 'wr', 0x8, 0,   0,  0          ),
+    req( 'wr', 0x9, 0x1090, 0, 0x19191919 ), resp( 'wr', 0x9, 0,   0,  0          ),
+    req( 'wr', 0xa, 0x10a0, 0, 0x1a1a1a1a ), resp( 'wr', 0xa, 0,   0,  0          ),
+    req( 'wr', 0xb, 0x10b0, 0, 0x1b1b1b1b ), resp( 'wr', 0xb, 0,   0,  0          ),
+    req( 'wr', 0xc, 0x10c0, 0, 0x1c1c1c1c ), resp( 'wr', 0xc, 0,   0,  0          ),
+    req( 'wr', 0xd, 0x10d0, 0, 0x1d1d1d1d ), resp( 'wr', 0xd, 0,   0,  0          ),
+    req( 'wr', 0xe, 0x10e0, 0, 0x1e1e1e1e ), resp( 'wr', 0xe, 0,   0,  0          ),
+    req( 'wr', 0xf, 0x10f0, 0, 0x1f1f1f1f ), resp( 'wr', 0xf, 0,   0,  0          ),
+
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1100 ), # capacity
+    req( 'rd', 0x0, 0x1200, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1200 ), # capacity
+    req( 'rd', 0x0, 0x1110, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1110 ), # capacity
+    req( 'rd', 0x0, 0x1210, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1210 ), # capacity
+    req( 'rd', 0x0, 0x1120, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1120 ), # capacity
+    req( 'rd', 0x0, 0x1220, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1220 ), # capacity
+    req( 'rd', 0x0, 0x1130, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1130 ), # capacity
+    req( 'rd', 0x0, 0x1230, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1230 ), # capacity
+    req( 'rd', 0x0, 0x1140, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1140 ), # capacity
+    req( 'rd', 0x0, 0x1240, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1240 ), # capacity
+    req( 'rd', 0x0, 0x1150, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1150 ), # capacity
+    req( 'rd', 0x0, 0x1250, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1250 ), # capacity
+    req( 'rd', 0x0, 0x1160, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1160 ), # capacity
+    req( 'rd', 0x0, 0x1260, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1260 ), # capacity
+    req( 'rd', 0x0, 0x1170, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1170 ), # capacity
+    req( 'rd', 0x0, 0x1270, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1270 ), # capacity
+
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x10101010 ),
+    req( 'rd', 0x0, 0x1080, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x18181818 ), # difference
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1100 ), # difference
+    req( 'rd', 0x0, 0x1010, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x11111111 ),
+    req( 'rd', 0x0, 0x1090, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x19191919 ), # difference
+    req( 'rd', 0x0, 0x1110, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1110 ), # difference
+    req( 'rd', 0x0, 0x1020, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x12121212 ),
+    req( 'rd', 0x0, 0x10a0, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x1a1a1a1a ), # difference
+    req( 'rd', 0x0, 0x1120, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1120 ), # difference
+    req( 'rd', 0x0, 0x1030, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x13131313 ),
+    req( 'rd', 0x0, 0x10b0, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x1b1b1b1b ), # difference
+    req( 'rd', 0x0, 0x1130, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1130 ), # difference
+    req( 'rd', 0x0, 0x1040, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x14141414 ),
+    req( 'rd', 0x0, 0x10c0, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x1c1c1c1c ), # difference
+    req( 'rd', 0x0, 0x1140, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1140 ), # difference
+    req( 'rd', 0x0, 0x1050, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x15151515 ),
+    req( 'rd', 0x0, 0x10d0, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x1d1d1d1d ), # difference
+    req( 'rd', 0x0, 0x1150, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1150 ), # difference
+    req( 'rd', 0x0, 0x1060, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x16161616 ),
+    req( 'rd', 0x0, 0x10e0, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x1e1e1e1e ), # difference
+    req( 'rd', 0x0, 0x1160, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1160 ), # difference
+    req( 'rd', 0x0, 0x1070, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x17171717 ),
+    req( 'rd', 0x0, 0x10f0, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x1f1f1f1f ), # difference
+    req( 'rd', 0x0, 0x1170, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1170 ), # difference
+  ]
+
+def conflict_misses_sassoc():
+  return [
+    #    type  opq  addr   len data                type  opq  test len data
+    req( 'wr', 0x0, 0x1000, 0, 0x10101010 ), resp( 'wr', 0x0, 0,   0,  0          ),
+    req( 'wr', 0x1, 0x1010, 0, 0x11111111 ), resp( 'wr', 0x1, 0,   0,  0          ),
+    req( 'wr', 0x2, 0x1080, 0, 0x18181818 ), resp( 'wr', 0x2, 0,   0,  0          ),
+    req( 'wr', 0x3, 0x1090, 0, 0x19191919 ), resp( 'wr', 0x3, 0,   0,  0          ),
+
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1100 ), # conflicts
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x10101010 ),
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1100 ), # difference
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x10101010 ), # difference
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1100 ), # difference
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x10101010 ), # difference
+  ]
+
+def LRU_replace_test1():
+  return [
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1000 ),
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1100 ),
+
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1000 ),
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1100 ),
+
+    req( 'rd', 0x0, 0x1200, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1200 ),
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1100 ),
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1000 ),
+
+    req( 'rd', 0x0, 0x1200, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1200 ),
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1100 ),
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1000 ),
+
+    req( 'rd', 0x0, 0x1200, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1200 ),
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1100 ),
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1000 ),
+  ]
+
+def LRU_replace_test2():
+  return [
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1000 ),
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1100 ),
+
+    req( 'rd', 0x0, 0x1200, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1200 ),
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1100 ),
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1000 ),
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1100 ),
+
+    req( 'rd', 0x0, 0x1200, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1200 ),
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1100 ),
+    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1000 ),
+    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1100 ),
+  ]
 
 test_case_table_sassoc = mk_test_case_table([
   (                       "msg_func            mem_data_func    stall lat src sink"),
@@ -740,11 +1049,19 @@ test_case_table_sassoc = mk_test_case_table([
   # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
   # LAB TASK: Add more entries to test case table
   # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  [ "capacity_misses_sassoc",            capacity_misses_sassoc,             data_2048B,   0.0,  0,  0,  0   ],
+  [ "conflict_misses_sassoc",            conflict_misses_sassoc,             data_2048B,   0.0,  0,  0,  0   ],
+  [ "LRU_replace_test1",                 LRU_replace_test1,                  data_2048B,   0.0,  0,  0,  0   ],
+  [ "LRU_replace_test2",                 LRU_replace_test2,                  data_2048B,   0.0,  0,  0,  0   ],
+  [ "capacity_misses_sassoc_src_delay",  capacity_misses_sassoc,             data_2048B,   0.9,  4,  10, 0   ],
+  [ "capacity_misses_sassoc_sink_delay", capacity_misses_sassoc,             data_2048B,   0.9,  4,  0,  10  ],
 ])
 
 @pytest.mark.parametrize( **test_case_table_sassoc )
 def test_sassoc( test_params, cmdline_opts ):
   run_test( CacheFL(), test_params, cmdline_opts, cmp_wo_test_field )
+
+
 
 #-------------------------------------------------------------------------
 # Banked cache test
@@ -792,10 +1109,11 @@ def test_sassoc( test_params, cmdline_opts ):
 #   with tag 00, and thus the fourth read will miss instead of hit.
 #
 #   4-bank(correct):
-#     idx  bk
-#   0 0 00 00 0000
-#   0 1 00 00 0000
-#   1 0 00 00 0000
+#     idx bk
+#   0 000 00 0000
+#   0 100 00 0000
+#   1 000 00 0000
+#   0 000 00 0000
 #   idx: 0, 4, 0 so the third one with tag 10 won't evict anything, and
 #   thus the fourth read will hit.
 

@@ -266,18 +266,18 @@ module lab3_mem_CacheBaseCtrl
       //                          cache cache mem mem  cache wben mem  wdata tag   tag   data  data  evict memreq rdata rdata valid valid dirty dirty
       //                          req   resp  req resp req   mux  resp mux   array array array array addr  addr   zero  reg   bit   write bit   write
       //                          rdy   val   val rdy  en    sel  en   sel   ren   wen   ren   wen   en    sel    sel   en    in    en    in    en
-      STATE_IDLE:              cs( 1,   0,    0,  0,   1,    'x,  1,   'x,   0,    0,    0,    0,    1,    'x,    'x,   1,    0,    0,    0,    0    );
-      STATE_TAG_CHECK:         cs( 0,   0,    0,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,    'x,   1,    0,    0,    0,    0    );
+      STATE_IDLE:              cs( 1,   0,    0,  0,   1,    'x,  1,   'x,   0,    0,    0,    0,    1,    'x,     1,   1,    0,    0,    0,    0    );
+      STATE_TAG_CHECK:         cs( 0,   0,    0,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,     1,   1,    0,    0,    0,    0    );
       STATE_EVICT_PREPARE:     cs( 0,   0,    0,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,     0,   1,    0,    0,    0,    0    );
-      STATE_EVICT_REQUEST:     cs( 0,   0,    1,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    0,     0,    'x,   0,    0,    0,    0,    0    );
-      STATE_EVICT_WAIT:        cs( 0,   0,    0,  1,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,    'x,   1,    0,    0,    0,    0    );
-      STATE_REFILL_REQUEST:    cs( 0,   0,    1,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,     1,    'x,   1,    0,    0,    0,    0    );
-      STATE_REFILL_WAIT:       cs( 0,   0,    0,  1,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,    'x,   1,    0,    0,    0,    0    );
-      STATE_REFILL_UPDATE:     cs( 0,   0,    0,  0,   0,     1,  0,    1,   0,    1,    0,    1,    1,    'x,    'x,   1,    1,    1,    0,    1    );
+      STATE_EVICT_REQUEST:     cs( 0,   0,    1,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    0,     0,     1,   0,    0,    0,    0,    0    );
+      STATE_EVICT_WAIT:        cs( 0,   0,    0,  1,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,     1,   1,    0,    0,    0,    0    );
+      STATE_REFILL_REQUEST:    cs( 0,   0,    1,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,     1,     1,   1,    0,    0,    0,    0    );
+      STATE_REFILL_WAIT:       cs( 0,   0,    0,  1,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,     1,   1,    0,    0,    0,    0    );
+      STATE_REFILL_UPDATE:     cs( 0,   0,    0,  0,   0,     1,  0,    1,   0,    1,    0,    1,    1,    'x,     1,   1,    1,    1,    0,    1    );
       STATE_READ_DATA_ACCESS:  cs( 0,   0,    0,  0,   0,    'x,  1,   'x,   1,    0,    1,    0,    1,    'x,     0,   1,    0,    0,    0,    0    );
-      STATE_WRITE_DATA_ACCESS: cs( 0,   0,    0,  0,   0,     0,  1,    0,   0,    1,    0,    1,    1,    'x,    'x,   1,    0,    0,    1,    1    );
-      STATE_INIT_DATA_ACCESS:  cs( 0,   0,    0,  0,   0,     0,  1,    0,   0,    1,    0,    1,    1,    'x,    'x,   1,    1,    1,    0,    1    );
-      STATE_WAIT:              cs( 0,   1,    0,  0,   0,     0,  1,    0,   1,    0,    1,    0,    1,    'x,    'x,   0,    0,    0,    0,    0    );
+      STATE_WRITE_DATA_ACCESS: cs( 0,   0,    0,  0,   0,     0,  1,    0,   0,    1,    0,    1,    1,    'x,     1,   1,    0,    0,    1,    1    );
+      STATE_INIT_DATA_ACCESS:  cs( 0,   0,    0,  0,   0,     0,  1,    0,   0,    1,    0,    1,    1,    'x,     1,   1,    1,    1,    0,    1    );
+      STATE_WAIT:              cs( 0,   1,    0,  0,   0,     0,  1,    0,   1,    0,    1,    0,    1,    'x,     1,   0,    0,    0,    0,    0    );
       
       default:                 cs( 0,   0,    0,  0,   0,    'x,  0,   'x,   0,    0,    0,    0,    0,    'x,    'x,   0,    0,    0,    0,    0    );        
     endcase
