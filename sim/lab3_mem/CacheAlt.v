@@ -40,9 +40,33 @@ module lab3_mem_CacheAlt
   output logic          cache2mem_respstream_rdy
 );
 
-  // '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  // LAB TASK: Define wires
-  // '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+  // cache request stream
+  logic [3:0] cachereq_type;
+  logic [31:0] cachereq_addr;
+  logic cache_req_en;
+  logic wben_mux_sel;
+
+  // memeory response stream
+  logic memresp_en;
+  logic write_data_mux_sel;
+
+  // SRAM control regs
+  logic tag_array_ren;
+  logic tag_array_wen;
+  logic data_array_ren;
+  logic data_array_wen;
+
+  // memory request stream
+  logic tag_match;
+  logic evict_addr_reg_en;
+  logic memreq_addr_mux_sel;
+  logic [3:0] memreq_type;
+
+  // cache response stream
+  logic read_data_zero_mux_sel;
+  logic read_data_reg_en;
+  logic hit;
+  logic [3:0] cacheresp_type;
 
   //----------------------------------------------------------------------
   // Control
@@ -112,7 +136,7 @@ module lab3_mem_CacheAlt
   `VC_TRACE_BEGIN
   begin
 
-    // vc_trace.append_str( trace_str, "(" );
+    vc_trace.append_str( trace_str, "(" );
 
     // Display state
 
@@ -134,7 +158,6 @@ module lab3_mem_CacheAlt
 
     endcase
 
-    /*
     vc_trace.append_str( trace_str, " " );
 
     // Use a "hit" signal in the control unit to display h/m
@@ -183,7 +206,6 @@ module lab3_mem_CacheAlt
     vc_trace.append_str( trace_str, "]" );
 
     vc_trace.append_str( trace_str, ")" );
-    */
 
   end
   `VC_TRACE_END
