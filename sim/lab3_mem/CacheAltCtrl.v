@@ -5,9 +5,8 @@
 `ifndef LAB3_MEM_CACHE_ALT_CTRL_V
 `define LAB3_MEM_CACHE_ALT_CTRL_V
 
-//''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-// LAB TASK: Include necessary files
-//''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+`include "vc/mem-msgs.v"
+`include "vc/regfiles.v"
 
 module lab3_mem_CacheAltCtrl
 #(
@@ -45,12 +44,15 @@ module lab3_mem_CacheAltCtrl
 
   // SRAM control regs
   output logic        tag_array_ren,
-  output logic        tag_array_wen,
+  output logic        tag_array_wen0,
+  output logic        tag_array_wen1,
   output logic        data_array_ren,
   output logic        data_array_wen,
 
   // memory request stream
-  input  logic        tag_match,
+  input  logic        tag_match0,
+  input  logic        tag_match1,
+  output logic        way_sel,
   output logic        evict_addr_reg_en,
   output logic        memreq_addr_mux_sel,
   output logic [3:0]  memreq_type,
@@ -82,46 +84,81 @@ module lab3_mem_CacheAltCtrl
   //----------------------------------------------------------------------
   // valid & dirty bits implementation
   //----------------------------------------------------------------------
-  logic [3:0] word_offset, index;
-  logic [23:0] tag;
+  logic [3:0] word_offset;
+  logic [2:0] index;
+  logic [24:0] tag;
 
   assign word_offset = cachereq_addr[3:0];
 
   generate
     if (p_num_banks == 1) begin
-      assign index = cachereq_addr[7:4];
-      assign tag = cachereq_addr[31:8];
+      assign index = cachereq_addr[6:4];
+      assign tag = cachereq_addr[31:7];
     end
     else if (p_num_banks == 4) begin // address mapping for four banks
-      assign index = cachereq_addr[9:6];
-      assign tag = {cachereq_addr[31:10], 2'b00};
+      assign index = cachereq_addr[8:6];
+      assign tag = {cachereq_addr[31:9], 2'b00};
     end
   endgenerate
 
-  logic valid_bit_in, dirty_bit_in;
-  logic valid_bits_write_en, dirty_bits_write_en;
-  logic is_valid, is_dirty;
+  logic valid_bit_in, dirty_bit_in, use_bit_in;
+  logic valid_bits_write_en0, valid_bits_write_en1, dirty_bits_write_en0, dirty_bits_write_en1, use_bits_write_en;
+  logic is_valid_way0, is_valid_way1, is_dirty_way0, is_dirty_way1, use_bit;
 
-  vc_ResetRegfile_1r1w#(1,16) valid_bits
+  vc_ResetRegfile_1r1w#(1,8) valid_bits_way0
   (
     .clk        (clk),
     .reset      (reset),
     .read_addr  (index),
-    .read_data  (is_valid),
-    .write_en   (valid_bits_write_en),
+    .read_data  (is_valid_way0),
+    .write_en   (valid_bits_write_en0),
     .write_addr (index),
     .write_data (valid_bit_in)
   );
 
-  vc_ResetRegfile_1r1w#(1,16) dirty_bits
+  vc_ResetRegfile_1r1w#(1,8) valid_bits_way1
   (
     .clk        (clk),
     .reset      (reset),
     .read_addr  (index),
-    .read_data  (is_dirty),
-    .write_en   (dirty_bits_write_en),
+    .read_data  (is_valid_way1),
+    .write_en   (valid_bits_write_en1),
+    .write_addr (index),
+    .write_data (valid_bit_in)
+  );
+
+  vc_ResetRegfile_1r1w#(1,8) dirty_bits_way0
+  (
+    .clk        (clk),
+    .reset      (reset),
+    .read_addr  (index),
+    .read_data  (is_dirty_way0),
+    .write_en   (dirty_bits_write_en0),
     .write_addr (index),
     .write_data (dirty_bit_in)
+  );
+
+  vc_ResetRegfile_1r1w#(1,8) dirty_bits_way1
+  (
+    .clk        (clk),
+    .reset      (reset),
+    .read_addr  (index),
+    .read_data  (is_dirty_way1),
+    .write_en   (dirty_bits_write_en1),
+    .write_addr (index),
+    .write_data (dirty_bit_in)
+  );
+
+  // 1 use bit (track two ways) for each set (8 set in total)
+  vc_ResetRegfile_1r1w#(1,8) use_bits
+  (
+    .clk        (clk),
+    .reset      (reset),
+    .read_addr  (index),
+    .read_data  (use_bit),
+    .write_en   (use_bits_write_en),
+    .write_addr (index),
+    .write_data (use_bit_in)
   );
 
   //----------------------------------------------------------------------
@@ -141,15 +178,33 @@ module lab3_mem_CacheAltCtrl
   // state transition logic
   //----------------------------------------------------------------------
 
-  logic is_read, is_write, is_init;
+  logic is_read, is_write, is_init, is_valid, is_dirty;
 
   assign is_read  = (cachereq_type == `VC_MEM_REQ_MSG_TYPE_READ);
   assign is_write = (cachereq_type == `VC_MEM_REQ_MSG_TYPE_WRITE);
   assign is_init  = (cachereq_type == `VC_MEM_REQ_MSG_TYPE_WRITE_INIT);
 
-  logic lookup_hit;
   // Use inside TAG CHECK state to determine next_state transition
-  assign lookup_hit = is_init? 1'b0 : (is_valid && tag_match);
+  logic lookup_hit;
+  assign lookup_hit = is_init? 1'b0 : ((is_valid_way0 && tag_match0) || (is_valid_way1 && tag_match1));
+
+  // next use bit logic, determined in TAG CHECK state
+  // when hit, use = way number that hit, when miss, use (the way need to replace) = the other way that's not recently used (LRU)
+  always_comb begin
+    if(is_valid_way0 && tag_match0)
+      use_bit_in = 0;
+    else if(is_valid_way1 && tag_match1)
+      use_bit_in = 1;
+    else
+      use_bit_in = ~use_bit; // LRU policy
+  end
+
+  // Use inside TAG CHECK state to determine next_state transition
+  logic lookup_way_sel;
+  assign lookup_way_sel = use_bit_in;
+
+  assign is_valid = (lookup_way_sel == 0)? is_valid_way0 : is_valid_way1;
+  assign is_dirty = (lookup_way_sel == 0)? is_dirty_way0 : is_dirty_way1;
 
   always_comb begin
     next_state = state; // default assignment
@@ -207,6 +262,8 @@ module lab3_mem_CacheAltCtrl
   // FSM output logic (combinational, for control signals)
   //----------------------------------------------------------------------
 
+  logic tag_array_wen, valid_bits_write_en, dirty_bits_write_en;
+  
   task cs
   (
     input logic       cs_cachereq_rdy,
@@ -257,10 +314,26 @@ module lab3_mem_CacheAltCtrl
   // cacheresp_type logic
   assign cacheresp_type = cachereq_type;
 
-  // memreq_type!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // memreq_type
   assign memreq_type = (state == STATE_EVICT_REQUEST)? `VC_MEM_REQ_MSG_TYPE_WRITE : 
       ((state == STATE_REFILL_REQUEST)? `VC_MEM_REQ_MSG_TYPE_READ : `VC_MEM_RESP_MSG_TYPE_X);
-  //assign memreq_type = (state == STATE_REFILL_REQUEST) ? `VC_MEM_REQ_MSG_TYPE_READ : `VC_MEM_RESP_MSG_TYPE_X;
+
+  // select the way that's currently using (determined by LRU policy)
+  assign way_sel = use_bit;
+  
+  // determine which way to write tag into by way_sel
+  assign tag_array_wen0 = tag_array_wen && (way_sel == 0);
+  assign tag_array_wen1 = tag_array_wen && (way_sel == 1);
+
+  // determine which way to write valid/dirty bit into by way_sel
+  assign valid_bits_write_en0 = valid_bits_write_en && (way_sel == 0);
+  assign valid_bits_write_en1 = valid_bits_write_en && (way_sel == 1);
+
+  assign dirty_bits_write_en0 = dirty_bits_write_en && (way_sel == 0);
+  assign dirty_bits_write_en1 = dirty_bits_write_en && (way_sel == 1);
+  
+  // only update use bits at TAG CHECK stage
+  assign use_bits_write_en = (state == STATE_TAG_CHECK)? 1 : 0;
 
   always_comb begin
     case(state)

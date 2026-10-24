@@ -174,7 +174,7 @@ module lab3_mem_CacheBase
     // Use a "hit" signal in the control unit to display h/m
 
     if ( ctrl.state == ctrl.STATE_TAG_CHECK ) begin
-      if ( ctrl.hit )
+      if ( ctrl.lookup_hit )
         vc_trace.append_str( trace_str, "h" );
       else
         vc_trace.append_str( trace_str, "m" );

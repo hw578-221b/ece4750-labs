@@ -5,9 +5,10 @@
 `ifndef LAB3_MEM_CACHE_ALT_DPATH_V
 `define LAB3_MEM_CACHE_ALT_DPATH_V
 
-//''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-// LAB TASK: Include necessary files
-//''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+`include "vc/muxes.v"
+`include "vc/regs.v"
+`include "vc/srams.v"
+`include "vc/mem-msgs.v"
 
 module lab3_mem_CacheAltDpath
 #(
@@ -39,12 +40,15 @@ module lab3_mem_CacheAltDpath
 
   // SRAM control regs
   input  logic tag_array_ren,
-  input  logic tag_array_wen,
+  input  logic tag_array_wen0,
+  input  logic tag_array_wen1,
   input  logic data_array_ren,
   input  logic data_array_wen,
 
   // memory request stream
-  output logic tag_match,
+  output logic tag_match0,
+  output logic tag_match1,
+  input  logic way_sel,
   input  logic evict_addr_reg_en,
   input  logic memreq_addr_mux_sel,
   input  logic [3:0] memreq_type,
@@ -116,21 +120,22 @@ module lab3_mem_CacheAltDpath
   // address mapping
   //=========================================================================
 
-  logic [3:0] word_offset, index;
+  logic [3:0] word_offset;
+  logic [2:0] index;
   logic [1:0] bank;
-  logic [23:0] tag;
+  logic [24:0] tag;
 
   generate
     if (p_num_banks == 1) begin
       assign word_offset = cachereq_addr[3:0];
-      assign index = cachereq_addr[7:4];
-      assign tag = cachereq_addr[31:8];
+      assign index = cachereq_addr[6:4];
+      assign tag = cachereq_addr[31:7];
     end
     else if (p_num_banks == 4) begin
       assign word_offset = cachereq_addr[3:0];
       assign bank = cachereq_addr[5:4];
-      assign index = cachereq_addr[9:6];
-      assign tag = {cachereq_addr[31:10], 2'b00};
+      assign index = cachereq_addr[8:6];
+      assign tag = {cachereq_addr[31:9], 2'b00};
     end
   endgenerate
   
@@ -168,18 +173,30 @@ module lab3_mem_CacheAltDpath
   // Tag Array
   //=========================================================================
 
-  logic [23:0] read_tag_out;
+  logic [24:0] read_tag_out0, read_tag_out1;
 
-  vc_CombinationalBitSRAM_1rw#(24,16) tag_array
+  vc_CombinationalBitSRAM_1rw#(25,8) tag_array_way0
   (
     .clk        (clk),
     .reset      (reset),
     .read_en    (tag_array_ren),
     .read_addr  (index),
-    .read_data  (read_tag_out),
-    .write_en   (tag_array_wen),
+    .read_data  (read_tag_out0),
+    .write_en   (tag_array_wen0),
     .write_addr (index),
-    .write_data (tag) // ignore the bank bits, as in multi-bank design, it will be taken care by bank routing network
+    .write_data (tag)
+  );
+
+  vc_CombinationalBitSRAM_1rw#(25,8) tag_array_way1
+  (
+    .clk        (clk),
+    .reset      (reset),
+    .read_en    (tag_array_ren),
+    .read_addr  (index),
+    .read_data  (read_tag_out1),
+    .write_en   (tag_array_wen1),
+    .write_addr (index),
+    .write_data (tag)
   );
 
   //=========================================================================
@@ -192,11 +209,11 @@ module lab3_mem_CacheAltDpath
     .clk           (clk),
     .reset         (reset),
     .read_en       (data_array_ren),
-    .read_addr     (index),
+    .read_addr     ({way_sel, index}),
     .read_data     (read_data_out),
     .write_byte_en (wben_mux_out),
     .write_en      (data_array_wen),
-    .write_addr    (index),
+    .write_addr    ({way_sel, index}),
     .write_data    (write_data_mux_out)
   );
 
@@ -251,18 +268,31 @@ module lab3_mem_CacheAltDpath
   // memreq_msg
   //=========================================================================
 
-  logic [31:0] mk_addr_evict_next, mk_addr_evict, mk_addr_read;
+  logic [31:0] mk_addr0, mk_addr1, mk_addr_evict_next, mk_addr_evict, mk_addr_read;
   
   // cmp, compare tag from cachereq to tag from the cache line
-  assign tag_match = (tag == read_tag_out);
+  assign tag_match0 = (tag == read_tag_out0);
+  assign tag_match1 = (tag == read_tag_out1);
   
   // write back to mem on a read/write miss and a dirty line
   generate
-    if(p_num_banks == 1)
-      assign mk_addr_evict_next = {read_tag_out, index, 4'b0000};
-    else if (p_num_banks == 4)
-      assign mk_addr_evict_next = {read_tag_out[23:2], index, bank, 4'b0000};
+    if(p_num_banks == 1) begin
+      assign mk_addr0 = {read_tag_out0, index, 4'b0000};
+      assign mk_addr1 = {read_tag_out1, index, 4'b0000};
+    end
+    else if (p_num_banks == 4) begin
+      assign mk_addr0 = {read_tag_out0[23:2], index, bank, 4'b0000};
+      assign mk_addr1 = {read_tag_out1[23:2], index, bank, 4'b0000};
+    end
   endgenerate
+
+  vc_Mux2#(32) way_evict_mux
+  (
+    .in0  (mk_addr0),
+    .in1  (mk_addr1),
+    .sel  (way_sel),
+    .out  (mk_addr_evict_next)
+  );
 
   vc_EnResetReg#(32) evict_addr_reg
   (

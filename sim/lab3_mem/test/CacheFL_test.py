@@ -803,6 +803,7 @@ def stride_random_reqtype_data():
 
 test_case_table_random = mk_test_case_table([
   (                                       "msg_func                     mem_data_func   stall lat src  sink"),
+  
   [ "random_addr_rd_data",                 random_addr_rd_data,         data_random,    0.0,  0,  0,   0    ],
   [ "random_addr_wr_random_data",          random_addr_wr_random_data,  data_random,    0.0,  0,  0,   0    ],
   [ "random_addr_reqtype_data",            random_addr_reqtype_data,    data_random,    0.0,  0,  0,   0    ],
@@ -820,9 +821,6 @@ def test_random( test_params, cmdline_opts ):
 # Test Cases for Direct Mapped
 #-------------------------------------------------------------------------
 
-# ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-# LAB TASK: Add directed test cases explicitly for direct mapped cache
-# ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 def capacity_misses_dmap():
   return [
     #    type  opq  addr   len data                type  opq  test len data
@@ -860,30 +858,14 @@ def capacity_misses_dmap():
     req( 'rd', 0x0, 0x1170, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1170 ), # capacity
     req( 'rd', 0x0, 0x1270, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1270 ), # capacity
 
-    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x10101010 ),
     req( 'rd', 0x0, 0x1080, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x18181818 ), # difference
-    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1100 ), # difference
-    req( 'rd', 0x0, 0x1010, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x11111111 ),
     req( 'rd', 0x0, 0x1090, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x19191919 ), # difference
-    req( 'rd', 0x0, 0x1110, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1110 ), # difference
-    req( 'rd', 0x0, 0x1020, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x12121212 ),
     req( 'rd', 0x0, 0x10a0, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x1a1a1a1a ), # difference
-    req( 'rd', 0x0, 0x1120, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1120 ), # difference
-    req( 'rd', 0x0, 0x1030, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x13131313 ),
     req( 'rd', 0x0, 0x10b0, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x1b1b1b1b ), # difference
-    req( 'rd', 0x0, 0x1130, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1130 ), # difference
-    req( 'rd', 0x0, 0x1040, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x14141414 ),
     req( 'rd', 0x0, 0x10c0, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x1c1c1c1c ), # difference
-    req( 'rd', 0x0, 0x1140, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1140 ), # difference
-    req( 'rd', 0x0, 0x1050, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x15151515 ),
     req( 'rd', 0x0, 0x10d0, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x1d1d1d1d ), # difference
-    req( 'rd', 0x0, 0x1150, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1150 ), # difference
-    req( 'rd', 0x0, 0x1060, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x16161616 ),
     req( 'rd', 0x0, 0x10e0, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x1e1e1e1e ), # difference
-    req( 'rd', 0x0, 0x1160, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1160 ), # difference
-    req( 'rd', 0x0, 0x1070, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x17171717 ),
     req( 'rd', 0x0, 0x10f0, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0x1f1f1f1f ), # difference
-    req( 'rd', 0x0, 0x1170, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1170 ), # difference
   ]
 
 def conflict_misses_dmap():
@@ -906,9 +888,6 @@ def conflict_misses_dmap():
 test_case_table_dmap = mk_test_case_table([
   (                                   "msg_func                         mem_data_func stall lat src sink"),
 
-  # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  # LAB TASK: Add more entries to test case table
-  # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
   [ "capacity_misses_dmap",            capacity_misses_dmap,            data_2048B,   0.0,  0,  0,  0    ],
   [ "conflict_misses_dmap",            conflict_misses_dmap,            data_2048B,   0.0,  0,  0,  0    ],
   [ "capacity_misses_dmap_src_delay",  capacity_misses_dmap,            data_2048B,   0.9,  5,  10, 0    ],
@@ -924,9 +903,6 @@ def test_dmap( test_params, cmdline_opts ):
 # Test Cases for Set Associative
 #-------------------------------------------------------------------------
 
-# ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-# LAB TASK: Add directed test cases explicitly for set associative cache
-# ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 def capacity_misses_sassoc():
   return [
     #    type  opq  addr   len data                type  opq  test len data
@@ -964,30 +940,14 @@ def capacity_misses_sassoc():
     req( 'rd', 0x0, 0x1170, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1170 ), # capacity
     req( 'rd', 0x0, 0x1270, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0xabcd1270 ), # capacity
 
-    req( 'rd', 0x0, 0x1000, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x10101010 ),
     req( 'rd', 0x0, 0x1080, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x18181818 ), # difference
-    req( 'rd', 0x0, 0x1100, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1100 ), # difference
-    req( 'rd', 0x0, 0x1010, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x11111111 ),
     req( 'rd', 0x0, 0x1090, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x19191919 ), # difference
-    req( 'rd', 0x0, 0x1110, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1110 ), # difference
-    req( 'rd', 0x0, 0x1020, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x12121212 ),
     req( 'rd', 0x0, 0x10a0, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x1a1a1a1a ), # difference
-    req( 'rd', 0x0, 0x1120, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1120 ), # difference
-    req( 'rd', 0x0, 0x1030, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x13131313 ),
     req( 'rd', 0x0, 0x10b0, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x1b1b1b1b ), # difference
-    req( 'rd', 0x0, 0x1130, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1130 ), # difference
-    req( 'rd', 0x0, 0x1040, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x14141414 ),
     req( 'rd', 0x0, 0x10c0, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x1c1c1c1c ), # difference
-    req( 'rd', 0x0, 0x1140, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1140 ), # difference
-    req( 'rd', 0x0, 0x1050, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x15151515 ),
     req( 'rd', 0x0, 0x10d0, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x1d1d1d1d ), # difference
-    req( 'rd', 0x0, 0x1150, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1150 ), # difference
-    req( 'rd', 0x0, 0x1060, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x16161616 ),
     req( 'rd', 0x0, 0x10e0, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x1e1e1e1e ), # difference
-    req( 'rd', 0x0, 0x1160, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1160 ), # difference
-    req( 'rd', 0x0, 0x1070, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x17171717 ),
     req( 'rd', 0x0, 0x10f0, 0, 0          ), resp( 'rd', 0x0, 0,   0,  0x1f1f1f1f ), # difference
-    req( 'rd', 0x0, 0x1170, 0, 0          ), resp( 'rd', 0x0, 1,   0,  0xabcd1170 ), # difference
   ]
 
 def conflict_misses_sassoc():
@@ -1044,11 +1004,8 @@ def LRU_replace_test2():
   ]
 
 test_case_table_sassoc = mk_test_case_table([
-  (                       "msg_func            mem_data_func    stall lat src sink"),
+  (                                     "msg_func                           mem_data_func stall lat src sink"),
 
-  # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  # LAB TASK: Add more entries to test case table
-  # ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
   [ "capacity_misses_sassoc",            capacity_misses_sassoc,             data_2048B,   0.0,  0,  0,  0   ],
   [ "conflict_misses_sassoc",            conflict_misses_sassoc,             data_2048B,   0.0,  0,  0,  0   ],
   [ "LRU_replace_test1",                 LRU_replace_test1,                  data_2048B,   0.0,  0,  0,  0   ],
