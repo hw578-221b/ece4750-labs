@@ -85,12 +85,7 @@ def parse_cmdline():
   p.add_argument( "-v", "--verbose",  action="store_true"                         )
   p.add_argument( "-h", "--help",     action="store_true"                         )
   p.add_argument(       "--impl",     choices=["fl","base", "alt"], default="fl"  )
-
-  #'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  # LAB TASK: Add choices to --input option to use your new patterns
-  #'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-  p.add_argument(       "--input",    choices=["loop1", "loop2", "loop3"], default="loop1" )
+  p.add_argument(       "--input",    choices=["loop1", "loop2", "loop3", "loop4", "loop5"], default="loop1" )
   p.add_argument(       "--trace",    action="store_true"                                          )
   p.add_argument(       "--stats",    action="store_true"                                          )
   p.add_argument(       "--dump-vcd", action="store_true"                                          )
@@ -193,9 +188,71 @@ def loop3():
 
   return [ imsgs, omsgs, mem ]
 
-#'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-# LAB TASK: Add more memory access patterns to evaluate your cache
-#'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+#-------------------------------------------------------------------------
+# Pattern: loop4
+#-------------------------------------------------------------------------
+
+# max spacial locality, access two addresses repeatedly
+def loop4():
+
+  # return memory message
+
+  mem = []
+
+  for i in range( 100 ):
+    mem.append( 0x00001000+i*4 )
+    mem.append( 0xabcd1000+i*4 )
+
+  # return src/sink message
+  
+  imsgs = []
+  omsgs = []
+
+  for i in range(100):
+    imsgs.append( req ( 'rd', i, 0x00001000, 0, 0 ) )
+    omsgs.append( resp( 'rd', i, 0, 0, 0xabcd1000 ) )
+    imsgs.append( req ( 'rd', i, 0x00001100, 0, 0 ) )
+    omsgs.append( resp( 'rd', i, 0, 0, 0xabcd1100 ) )
+
+  return [ imsgs, omsgs, mem ]
+
+#-------------------------------------------------------------------------
+# Pattern: loop5
+#-------------------------------------------------------------------------
+
+# mixed rd, wr requests, max spatial locality
+def loop5():
+
+  # return memory message
+
+  mem = []
+
+  for i in range( 100 ):
+    mem.append( 0x00001000+i*4 )
+    mem.append( 0xabcd1000+i*4 )
+
+  for i in range( 100 ):
+    mem.append( 0x00002000+i*4 )
+    mem.append( 0x00002000+i*4 )
+
+  for i in range( 100 ):
+      mem.append( 0x00003010+i*4 )
+      mem.append( 0xabcd3010+i*4 )
+  
+  # return src/sink message
+
+  imsgs = []
+  omsgs = []
+
+  for i in range( 100 ):
+    imsgs.append( req ( 'rd', i, 0x00001000+i*4, 0, 0 ) )
+    omsgs.append( resp( 'rd', i, 0, 0, 0xabcd1000+i*4 ) )
+    imsgs.append( req ( 'rd', i, 0x00002000+i*4, 0, 0 ) )
+    omsgs.append( resp( 'rd', i, 0, 0, 0x00002000+i*4 ) )
+    imsgs.append( req ( 'wr', i, 0x00003010+i*4, 0, 0xabcd3000+i*8 ) )
+    omsgs.append( resp( 'wr', i, 0, 0, 0 ) )
+
+  return [ imsgs, omsgs, mem ]
 
 #-------------------------------------------------------------------------
 # Main
@@ -218,13 +275,12 @@ def main():
     'loop1' : loop1,
     'loop2' : loop2,
     'loop3' : loop3,
-
-    #'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    # LAB TASK: Add your new patterns to this Python dict
-    #'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
+    'loop4' : loop4,
+    'loop5' : loop5,
   }
 
+  # input_dict[ opts.input ] look up the function name
+  # "()" calls that function immediately, this is Python’s function-call syntax
   [ imsgs, omsgs, mem ] = input_dict[ opts.input ]()
 
   # Create VCD filename
