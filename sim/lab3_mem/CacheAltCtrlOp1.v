@@ -2,13 +2,13 @@
 // Alt Blocking Cache Control
 //=========================================================================
 
-`ifndef LAB3_MEM_CACHE_ALT_CTRL_V
-`define LAB3_MEM_CACHE_ALT_CTRL_V
+`ifndef LAB3_MEM_CACHE_ALT_CTRL_OP1_V
+`define LAB3_MEM_CACHE_ALT_CTRL_OP1_V
 
 `include "vc/mem-msgs.v"
 `include "vc/regfiles.v"
 
-module lab3_mem_CacheAltCtrl
+module lab3_mem_CacheAltCtrlOp1
 #(
   parameter p_num_banks = 1
 )
@@ -47,7 +47,8 @@ module lab3_mem_CacheAltCtrl
   output logic        tag_array_wen0,
   output logic        tag_array_wen1,
   output logic        data_array_ren,
-  output logic        data_array_wen,
+  output logic        data_array_wen0,
+  output logic        data_array_wen1,
 
   // memory request stream
   input  logic        tag_match0,
@@ -262,7 +263,7 @@ module lab3_mem_CacheAltCtrl
   // FSM output logic (combinational, for control signals)
   //----------------------------------------------------------------------
 
-  logic tag_array_wen, valid_bits_write_en, dirty_bits_write_en;
+  logic tag_array_wen, data_array_wen, valid_bits_write_en, dirty_bits_write_en;
   
   task cs
   (
@@ -324,6 +325,10 @@ module lab3_mem_CacheAltCtrl
   // determine which way to write tag into by way_sel
   assign tag_array_wen0 = tag_array_wen && (way_sel == 0);
   assign tag_array_wen1 = tag_array_wen && (way_sel == 1);
+
+  // determine which way to write data into by way_sel
+  assign data_array_wen0 = data_array_wen && (way_sel == 0);
+  assign data_array_wen1 = data_array_wen && (way_sel == 1);
 
   // determine which way to write valid/dirty bit into by way_sel
   assign valid_bits_write_en0 = valid_bits_write_en && (way_sel == 0);

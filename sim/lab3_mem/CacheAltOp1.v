@@ -2,16 +2,16 @@
 // Alt Blocking Cache
 //=========================================================================
 
-`ifndef LAB3_MEM_CACHE_ALT_V
-`define LAB3_MEM_CACHE_ALT_V
+`ifndef LAB3_MEM_CACHE_ALT_OP1_V
+`define LAB3_MEM_CACHE_ALT_OP1_V
 
 `include "vc/mem-msgs.v"
 `include "vc/trace.v"
 
-`include "lab3_mem/CacheAltCtrl.v"
-`include "lab3_mem/CacheAltDpath.v"
+`include "lab3_mem/CacheAltCtrlOp1.v"
+`include "lab3_mem/CacheAltDpathOp1.v"
 
-module lab3_mem_CacheAlt
+module lab3_mem_CacheAltOp1
 #(
   parameter p_num_banks = 1 // Total number of cache banks
 )
@@ -55,7 +55,8 @@ module lab3_mem_CacheAlt
   logic tag_array_wen0;
   logic tag_array_wen1;
   logic data_array_ren;
-  logic data_array_wen;
+  logic data_array_wen0;
+  logic data_array_wen1;
 
   // memory request stream
   logic tag_match0;
@@ -75,7 +76,7 @@ module lab3_mem_CacheAlt
   // Control
   //----------------------------------------------------------------------
 
-  lab3_mem_CacheAltCtrl
+  lab3_mem_CacheAltCtrlOp1
   #(
     .p_num_banks              (p_num_banks)
   )
@@ -104,7 +105,7 @@ module lab3_mem_CacheAlt
   // Datapath
   //----------------------------------------------------------------------
 
-  lab3_mem_CacheAltDpath
+  lab3_mem_CacheAltDpathOp1
   #(
     .p_num_banks              (p_num_banks)
   )

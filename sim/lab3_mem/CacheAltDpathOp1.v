@@ -2,15 +2,15 @@
 // Alt Blocking Cache Datapath
 //=========================================================================
 
-`ifndef LAB3_MEM_CACHE_ALT_DPATH_V
-`define LAB3_MEM_CACHE_ALT_DPATH_V
+`ifndef LAB3_MEM_CACHE_ALT_DPATH_OP1_V
+`define LAB3_MEM_CACHE_ALT_DPATH_OP1_V
 
 `include "vc/muxes.v"
 `include "vc/regs.v"
 `include "vc/srams.v"
 `include "vc/mem-msgs.v"
 
-module lab3_mem_CacheAltDpath
+module lab3_mem_CacheAltDpathOp1
 #(
   parameter p_num_banks = 1
 )
@@ -43,7 +43,8 @@ module lab3_mem_CacheAltDpath
   input  logic tag_array_wen0,
   input  logic tag_array_wen1,
   input  logic data_array_ren,
-  input  logic data_array_wen,
+  input  logic data_array_wen0,
+  input  logic data_array_wen1,
 
   // memory request stream
   output logic tag_match0,
@@ -202,18 +203,31 @@ module lab3_mem_CacheAltDpath
   //=========================================================================
   // Data Array
   //=========================================================================
-  logic [127:0] read_data_out;
+  logic [127:0] read_data_out0, read_data_out1;
 
-  vc_CombinationalSRAM_1rw#(128,16) data_array
+  vc_CombinationalSRAM_1rw#(128,8) data_array_way0
   (
     .clk           (clk),
     .reset         (reset),
     .read_en       (data_array_ren),
-    .read_addr     ({way_sel, index}),
-    .read_data     (read_data_out),
+    .read_addr     (index),
+    .read_data     (read_data_out0),
     .write_byte_en (wben_mux_out),
-    .write_en      (data_array_wen),
-    .write_addr    ({way_sel, index}),
+    .write_en      (data_array_wen0),
+    .write_addr    (index),
+    .write_data    (write_data_mux_out)
+  );
+
+  vc_CombinationalSRAM_1rw#(128,8) data_array_way1
+  (
+    .clk           (clk),
+    .reset         (reset),
+    .read_en       (data_array_ren),
+    .read_addr     (index),
+    .read_data     (read_data_out1),
+    .write_byte_en (wben_mux_out),
+    .write_en      (data_array_wen1),
+    .write_addr    (index),
     .write_data    (write_data_mux_out)
   );
 
@@ -221,11 +235,19 @@ module lab3_mem_CacheAltDpath
   // cacheresp_msg
   //=========================================================================
 
-  logic [127:0] read_data_zero_mux_out, read_data_reg_q;
+  logic [127:0] read_way_mux_out, read_data_zero_mux_out, read_data_reg_q;
 
+  vc_Mux2#(128) read_way_mux
+  (
+    .in0  (read_data_out0),
+    .in1  (read_data_out1),
+    .sel  (way_sel),
+    .out  (read_way_mux_out)
+  );
+  
   vc_Mux2#(128) read_data_zero_mux
   (
-    .in0  (read_data_out),
+    .in0  (read_way_mux_out),
     .in1  (128'b0),
     .sel  (read_data_zero_mux_sel),
     .out  (read_data_zero_mux_out)
