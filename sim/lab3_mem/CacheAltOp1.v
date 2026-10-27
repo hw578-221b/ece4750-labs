@@ -62,6 +62,8 @@ module lab3_mem_CacheAltOp1
   logic tag_match0;
   logic tag_match1;
   logic way_sel;
+  logic read_way_mux_sel;
+  logic [1:0]  parallel_rd_sel;
   logic evict_addr_reg_en;
   logic memreq_addr_mux_sel;
   logic [3:0] memreq_type;
@@ -147,9 +149,9 @@ module lab3_mem_CacheAltOp1
     case ( ctrl.state )
 
       ctrl.STATE_IDLE:              vc_trace.append_str( trace_str, "I " );
-      ctrl.STATE_TAG_CHECK:         vc_trace.append_str( trace_str, "TC" );
+      ctrl.STATE_TAG_CHECK_RD:      vc_trace.append_str( trace_str, "TCR");
       ctrl.STATE_INIT_DATA_ACCESS:  vc_trace.append_str( trace_str, "IN" );
-      ctrl.STATE_READ_DATA_ACCESS:  vc_trace.append_str( trace_str, "RD" );
+      //ctrl.STATE_READ_DATA_ACCESS:  vc_trace.append_str( trace_str, "RD" );
       ctrl.STATE_WRITE_DATA_ACCESS: vc_trace.append_str( trace_str, "WD" );
       ctrl.STATE_REFILL_REQUEST:    vc_trace.append_str( trace_str, "RR" );
       ctrl.STATE_REFILL_WAIT:       vc_trace.append_str( trace_str, "RW" );
@@ -166,8 +168,8 @@ module lab3_mem_CacheAltOp1
 
     // Use a "hit" signal in the control unit to display h/m
 
-    if ( ctrl.state == ctrl.STATE_TAG_CHECK ) begin
-      if ( ctrl.lookup_hit )
+    if ( ctrl.state == ctrl.STATE_TAG_CHECK_RD ) begin
+      if ( ctrl.hit )
         vc_trace.append_str( trace_str, "h" );
       else
         vc_trace.append_str( trace_str, "m" );

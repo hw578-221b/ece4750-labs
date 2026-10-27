@@ -50,6 +50,8 @@ module lab3_mem_CacheAltDpathOp1
   output logic tag_match0,
   output logic tag_match1,
   input  logic way_sel,
+  input  logic read_way_mux_sel,
+  input  logic [1:0] parallel_rd_sel,
   input  logic evict_addr_reg_en,
   input  logic memreq_addr_mux_sel,
   input  logic [3:0] memreq_type,
@@ -235,13 +237,13 @@ module lab3_mem_CacheAltDpathOp1
   // cacheresp_msg
   //=========================================================================
 
-  logic [127:0] read_way_mux_out, read_data_zero_mux_out, read_data_reg_q;
+  logic [127:0] read_way_mux_out, read_data_zero_mux_out, read_data_reg_q, parallel_rd_mux_out;
 
   vc_Mux2#(128) read_way_mux
   (
     .in0  (read_data_out0),
     .in1  (read_data_out1),
-    .sel  (way_sel),
+    .sel  (read_way_mux_sel),
     .out  (read_way_mux_out)
   );
   
@@ -262,6 +264,15 @@ module lab3_mem_CacheAltDpathOp1
     .q      (read_data_reg_q)
   );
 
+  vc_Mux3#(128) parallel_rd_mux
+  (
+    .in0  (read_data_out0),
+    .in1  (read_data_out1),
+    .in2  (read_data_reg_q),
+    .sel  (parallel_rd_sel),
+    .out  (parallel_rd_mux_out)
+  );
+
   logic [1:0] word_select_mux_sel;
   logic [31:0] word_sel_mux_out;
 
@@ -269,10 +280,10 @@ module lab3_mem_CacheAltDpathOp1
 
   vc_Mux4#(32) word_select_mux
   (
-    .in0  (read_data_reg_q[31:0]),
-    .in1  (read_data_reg_q[63:32]),
-    .in2  (read_data_reg_q[95:64]),
-    .in3  (read_data_reg_q[127:96]),
+    .in0  (parallel_rd_mux_out[31:0]),
+    .in1  (parallel_rd_mux_out[63:32]),
+    .in2  (parallel_rd_mux_out[95:64]),
+    .in3  (parallel_rd_mux_out[127:96]),
     .sel  (word_select_mux_sel),
     .out  (word_sel_mux_out)
   );
@@ -345,7 +356,7 @@ module lab3_mem_CacheAltDpathOp1
 
   assign cache2mem_reqstream_msg.addr = memreq_addr_mux_out;
 
-  assign cache2mem_reqstream_msg.data = read_data_reg_q;
+  assign cache2mem_reqstream_msg.data = parallel_rd_mux_out;
 
   assign cache2mem_reqstream_msg.type_ = memreq_type;
 
