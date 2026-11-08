@@ -223,6 +223,9 @@ module lab2_proc_ProcAlt
   logic        br_cond_eq_X;
   logic        br_cond_lt_X;
   logic        br_cond_ltu_X;
+  logic        br_cond_ge_X;
+  logic        br_cond_geu_X;
+
   logic        imul_req_rdy_D;
   logic        imul_resp_val_X;
 

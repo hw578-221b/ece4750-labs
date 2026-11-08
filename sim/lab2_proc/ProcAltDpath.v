@@ -76,6 +76,8 @@ module lab2_proc_ProcAltDpath
   output logic         br_cond_eq_X,
   output logic         br_cond_lt_X,
   output logic         br_cond_ltu_X,
+  output logic         br_cond_ge_X,
+  output logic         br_cond_geu_X,
 
   output logic         imul_req_rdy_D,
   output logic         imul_resp_val_X,
@@ -348,7 +350,9 @@ module lab2_proc_ProcAltDpath
     .out      (alu_result_X),
     .ops_eq   (br_cond_eq_X),
     .ops_lt   (br_cond_lt_X),
-    .ops_ltu  (br_cond_ltu_X)
+    .ops_ltu  (br_cond_ltu_X),
+    .ops_ge   (br_cond_ge_X),
+    .ops_geu  (br_cond_geu_X)
   );
 
   lab1_imul_IntMulAlt imul

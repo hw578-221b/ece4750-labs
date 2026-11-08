@@ -15,7 +15,9 @@ module lab2_proc_ProcDpathAlu
   output logic [31:0] out,
   output logic        ops_eq,
   output logic        ops_lt,
-  output logic        ops_ltu
+  output logic        ops_ltu,
+  output logic        ops_ge,
+  output logic        ops_geu
 );
 
   always_comb begin
@@ -30,6 +32,7 @@ module lab2_proc_ProcDpathAlu
       4'd6    : out = in0 & in1;                                // AND
       4'd7    : out = in0 | in1;                                // OR
       4'd8    : out = in0 ^ in1;                                // XOR
+      4'd9    : out = (in0 < in1);                              // LTU
       4'd11   : out = in0;                                      // CP OP0
       4'd12   : out = in1;                                      // CP OP1
       4'd13   : out = (in0 + in1) & 32'hfffffffe;               // JALR
@@ -48,8 +51,10 @@ module lab2_proc_ProcDpathAlu
     .out  (ops_eq)
   );
 
-  assign ops_lt = $signed(in0) < $signed(in1);
+  assign ops_lt  = $signed(in0) < $signed(in1);
   assign ops_ltu = in0 < in1;
+  assign ops_ge  = $signed(in0) >= $signed(in1);
+  assign ops_geu = in0 >= in1;
 
 endmodule
 
