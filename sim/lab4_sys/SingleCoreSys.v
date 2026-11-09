@@ -66,10 +66,80 @@ module lab4_sys_SingleCoreSys
   // Instantiate and connect processor and caches
   //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+  mem_req_4B_t icache_reqstream_msg, dcache_reqstream_msg;
+  mem_resp_4B_t icache_respstream_msg, dcache_respstream_msg;
+
+  logic icache_reqstream_val, icache_reqstream_rdy, icache_respstream_val, icache_respstream_rdy;
+  logic dcache_reqstream_val, dcache_reqstream_rdy, dcache_respstream_val, dcache_respstream_rdy;
+
+  lab2_proc_ProcAlt#(1, 0) proc
+  (              
+    .imem_reqstream_msg(icache_reqstream_msg), 
+    .imem_reqstream_val(icache_reqstream_val), 
+    .imem_reqstream_rdy(icache_reqstream_rdy), 
+
+    .imem_respstream_msg(icache_respstream_msg),
+    .imem_respstream_val(icache_respstream_val),
+    .imem_respstream_rdy(icache_respstream_rdy),
+      
+    .dmem_reqstream_msg(dcache_reqstream_msg), 
+    .dmem_reqstream_val(dcache_reqstream_val), 
+    .dmem_reqstream_rdy(dcache_reqstream_rdy), 
+
+    .dmem_respstream_msg(dcache_respstream_msg),
+    .dmem_respstream_val(dcache_respstream_val),
+    .dmem_respstream_rdy(dcache_respstream_rdy),
+
+    .core_id(32'd0),
+
+    .*
+  );
+
+  lab3_mem_CacheAlt#(1) icache
+  (
+    .proc2cache_reqstream_msg(icache_reqstream_msg), 
+    .proc2cache_reqstream_val(icache_reqstream_val), 
+    .proc2cache_reqstream_rdy(icache_reqstream_rdy), 
+
+    .proc2cache_respstream_msg(icache_respstream_msg),
+    .proc2cache_respstream_val(icache_respstream_val),
+    .proc2cache_respstream_rdy(icache_respstream_rdy),
+
+    .cache2mem_reqstream_msg(imem_reqstream_msg),  
+    .cache2mem_reqstream_val(imem_reqstream_val),  
+    .cache2mem_reqstream_rdy(imem_reqstream_rdy), 
+
+    .cache2mem_respstream_msg(imem_respstream_msg), 
+    .cache2mem_respstream_val(imem_respstream_val), 
+    .cache2mem_respstream_rdy(imem_respstream_rdy),
+
+    .*
+  );
+
+  lab3_mem_CacheAlt#(1) dcache
+  (
+    .proc2cache_reqstream_msg(dcache_reqstream_msg), 
+    .proc2cache_reqstream_val(dcache_reqstream_val), 
+    .proc2cache_reqstream_rdy(dcache_reqstream_rdy), 
+
+    .proc2cache_respstream_msg(dcache_respstream_msg),
+    .proc2cache_respstream_val(dcache_respstream_val),
+    .proc2cache_respstream_rdy(dcache_respstream_rdy),
+
+    .cache2mem_reqstream_msg(dmem_reqstream_msg),  
+    .cache2mem_reqstream_val(dmem_reqstream_val),  
+    .cache2mem_reqstream_rdy(dmem_reqstream_rdy),  
+
+    .cache2mem_respstream_msg(dmem_respstream_msg), 
+    .cache2mem_respstream_val(dmem_respstream_val), 
+    .cache2mem_respstream_rdy(dmem_respstream_rdy),
+
+    .*
+  );
+
   // Use some extra ports to report on the number of cache accesses and
   // misses to be able to calculate the miss rate in the evaluation
-  // simulator. If you use different names for your wires, you may need
-  // to update this logic.
+  // simulator.
 
   assign icache_access = icache_reqstream_val  & icache_reqstream_rdy;
   assign icache_miss   = icache_respstream_val & icache_respstream_rdy & ~icache_respstream_msg.test[0];

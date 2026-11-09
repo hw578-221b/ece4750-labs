@@ -47,8 +47,8 @@ module lab2_proc_DropUnit
   always_comb begin
     if ( state == c_state_pass ) begin
 
-      // we only go to drop state if there is a drop request and we cannot
-      // drop it right away (!istream_en)
+      // we only go to drop state if there is a drop request and we cannot drop it right away (!istream_go)
+      // this is to remember that we need to drop the packet when it arrives (istream_go)
       if ( drop && !istream_go )
         next_state = c_state_drop;
       else
@@ -71,8 +71,8 @@ module lab2_proc_DropUnit
   always_comb begin
     if ( state == c_state_pass ) begin
 
-      // we combinationally take care of dropping if the packet is already
-      // available
+      // we combinationally take care of dropping if the packet is already available (istream_val)
+      // if packet not available (istream_val = 0), then ostream_val will also be 0
       ostream_val = istream_val && !drop;
       istream_rdy  = ostream_rdy;
 

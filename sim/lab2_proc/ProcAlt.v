@@ -64,8 +64,8 @@ module lab2_proc_ProcAlt
   // parameter, each core would be compiled separately.
 
   input  logic [31:0]  core_id,
-  output logic         commit_inst,
-  output logic         stats_en
+  output logic         commit_inst, // connect to ctrl module by .*, used by proc_sim to calculate CPI
+  output logic         stats_en     // connect to dpath module by .*, used by proc_sim to enable statistics counting (when processor is active)
 );
 
   //----------------------------------------------------------------------
