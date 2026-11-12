@@ -120,12 +120,15 @@ class TestHarness(Component):
   # line_trace
   #-----------------------------------------------------------------------
 
+  # def line_trace( s ):
+  #   return s.src.line_trace()  + " >" + \
+  #          ("- " if s.proc.stats_en else "  ") + \
+  #          s.proc.line_trace() + "|" + \
+  #          s.mem.line_trace()  + " > " + \
+  #          s.sink.line_trace()
+
   def line_trace( s ):
-    return s.src.line_trace()  + " >" + \
-           ("- " if s.proc.stats_en else "  ") + \
-           s.proc.line_trace() + "|" + \
-           s.mem.line_trace()  + " > " + \
-           s.sink.line_trace()
+      return s.proc.line_trace()
 
 #=========================================================================
 # run_test
