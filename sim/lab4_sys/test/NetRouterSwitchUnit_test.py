@@ -62,9 +62,9 @@ def test_basic( cmdline_opts ):
 
   msgs = [
     #           src  dest opaq  payload
-    NetMsgType( 1,   0,   0x11, 0x11111111 ),
-    NetMsgType( 2,   0,   0x12, 0x12121212 ),
-    NetMsgType( 0,   0,   0x10, 0x10101010 ),
+    NetMsgType( 0,   0,   0x11, 0x11111111 ),
+    NetMsgType( 1,   0,   0x12, 0x12121212 ),
+    NetMsgType( 2,   0,   0x10, 0x10101010 ),
   ]
 
   th.set_param("top.srcs[0].construct", msgs=[ m for m in msgs if m.src == 0 ] )
@@ -76,13 +76,7 @@ def test_basic( cmdline_opts ):
 
   run_sim( th, cmdline_opts, duts=['sunit'] )
 
-#-------------------------------------------------------------------------
-# Test Cases: Very Simple
-#-------------------------------------------------------------------------
-# These are examples of a simple tests using a test case table. These
-# tests may not be valid depending on your arbitration algorithm. You are
-# free to change these tests. We will not test your switch unit since its
-# functionality depends on the chosen arbitration algorithm.
+
 
 one = [
   #           src  dest opaq  payload
@@ -91,34 +85,45 @@ one = [
 
 three = [
   #           src  dest opaq  payload
-  NetMsgType( 1,   2,   0x11, 0x11111111 ),
-  NetMsgType( 2,   1,   0x12, 0x12121212 ),
-  NetMsgType( 0,   3,   0x10, 0x10101010 ),
+  NetMsgType( 0,   2,   0x11, 0x11111111 ),
+  NetMsgType( 1,   1,   0x12, 0x12121212 ),
+  NetMsgType( 2,   3,   0x10, 0x10101010 ),
 ]
 
-three_diff_dest = [
-  #           src  dest opaq  payload
-  NetMsgType( 1,   2,   0x11, 0x11111111 ),
-  NetMsgType( 2,   1,   0x12, 0x12121212 ),
-  NetMsgType( 0,   3,   0x10, 0x10101010 ),
+# the expression below is equivalent to:
+# msgs = []
+# for n in range(12):
+#   for port in range(3):
+#     msgs.append(NetMsgType(port, 0, n, (port << 16) | n))
+many_three = [
+  NetMsgType(port, 0, n, (port << 16) | n )
+  for n in range(12)
+  for port in range(3)
 ]
 
-#''' LAB TASK ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-# Change above tests if necessary; add more directed tests
-#'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+many_two = [
+  NetMsgType(port, 0, n, (port << 16) | n )
+  for n in range(12)
+  for port in range(1,3)
+]
+
+many_one = [
+  NetMsgType(0, 0, n, n ) for n in range(12)
+]
 
 #-------------------------------------------------------------------------
 # Test Case Table
 #-------------------------------------------------------------------------
 
 test_case_table = mk_test_case_table([
-  (                               "msgs           src_delay sink_delay delay_mode"),
-  [ "one",                         one,                  0,  0,  'fixed'  ],
-  [ "three",                       three,                0,  0,  'fixed'  ],
-  [ "three_diff_dest",             three_diff_dest,      0,  0,  'fixed'  ],
-
-  #'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
+  (                              "msgs           src_delay sink_delay delay_mode"),
+  [ "one",                        one,                0,       0,      'fixed'  ],
+  [ "three",                      three,              0,       0,      'fixed'  ],
+  [ "busy",                       many_three,         0,       0,      'fixed'  ],
+  [ "back_pressure",              many_three,         0,       5,      'fixed'  ],
+  [ "source_delay",               many_three,         3,       0,      'fixed'  ],
+  [ "winner_not_highest_prority", many_two,           0,       0,      'fixed'  ],
+  [ "busy_single",                many_one,           0,       0,      'fixed'  ],
 ])
 
 #-------------------------------------------------------------------------
@@ -130,24 +135,13 @@ def test( test_params, cmdline_opts ):
 
   th = TestHarness()
 
-  th.set_param("top.srcs[0].construct",
-    msgs                = [ m for m in test_params.msgs if m.src == 0 ],
-    interval_delay_mode = test_params.delay_mode,
-    initial_delay       = test_params.src_delay,
-    interval_delay      = test_params.src_delay )
-
-  th.set_param("top.srcs[1].construct",
-    msgs                = [ m for m in test_params.msgs if m.src == 1 ],
-    interval_delay_mode = test_params.delay_mode,
-    initial_delay       = test_params.src_delay,
-    interval_delay      = test_params.src_delay )
-
-  th.set_param("top.srcs[2].construct",
-    msgs                = [ m for m in test_params.msgs if m.src == 2 ],
-    interval_delay_mode = test_params.delay_mode,
-    initial_delay       = test_params.src_delay,
-    interval_delay      = test_params.src_delay )
-
+  for port in range(3):
+    th.set_param(f"top.srcs[{port}].construct",
+      msgs                = [ m for m in test_params.msgs if int(m.src) == port ],
+      interval_delay_mode = test_params.delay_mode,
+      initial_delay       = test_params.src_delay,
+      interval_delay      = test_params.src_delay )
+ 
   th.set_param("top.sink.construct",
     msgs                = test_params.msgs,
     interval_delay_mode = test_params.delay_mode,

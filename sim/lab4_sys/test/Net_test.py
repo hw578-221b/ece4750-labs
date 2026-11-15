@@ -11,11 +11,14 @@ from pymtl3.stdlib.stream import StreamSourceFL, StreamSinkFL
 from lab4_sys.NetMsg import mk_net_msg
 from lab4_sys.Net import Net
 
+import random
+random.seed(0xdeadbeef)
+
 #-------------------------------------------------------------------------
 # Message Types
 #-------------------------------------------------------------------------
 
-NetMsgType = mk_net_msg( 32 )
+NetMsgType = mk_net_msg( 32 ) # 32 is the bit width for payload, the whole net msg width is 44 (default)
 
 #-------------------------------------------------------------------------
 # TestHarness
@@ -150,29 +153,105 @@ all_to_dest3 = [
   NetMsgType( 3,   3,   0x13, 0x13131313 ),
 ]
 
-#''' LAB TASK ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-# Add more directed and random tests
-#'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+src1_to_all_dest = [
+  #           src  dest opaq  payload
+  NetMsgType( 1,   0,   0x10, 0x10101010 ),
+  NetMsgType( 1,   1,   0x11, 0x11111111 ),
+  NetMsgType( 1,   2,   0x12, 0x12121212 ),
+  NetMsgType( 1,   3,   0x13, 0x13131313 ),
+]
+
+src2_to_all_dest = [
+  #           src  dest opaq  payload
+  NetMsgType( 2,   0,   0x10, 0x10101010 ),
+  NetMsgType( 2,   1,   0x11, 0x11111111 ),
+  NetMsgType( 2,   2,   0x12, 0x12121212 ),
+  NetMsgType( 2,   3,   0x13, 0x13131313 ),
+]
+
+src3_to_all_dest = [
+  #           src  dest opaq  payload
+  NetMsgType( 3,   0,   0x10, 0x10101010 ),
+  NetMsgType( 3,   1,   0x11, 0x11111111 ),
+  NetMsgType( 3,   2,   0x12, 0x12121212 ),
+  NetMsgType( 3,   3,   0x13, 0x13131313 ),
+]
+
+src_to_des_comb = [
+  #           src  dest opaq  payload
+  NetMsgType( 0,   0,   0x10, 0x10101010 ),
+  NetMsgType( 0,   1,   0x11, 0x11111111 ),
+  NetMsgType( 0,   2,   0x12, 0x12121212 ),
+  NetMsgType( 0,   3,   0x13, 0x13131313 ),
+  NetMsgType( 1,   0,   0x10, 0x10101010 ),
+  NetMsgType( 1,   1,   0x11, 0x11111111 ),
+  NetMsgType( 1,   2,   0x12, 0x12121212 ),
+  NetMsgType( 1,   3,   0x13, 0x13131313 ),
+  NetMsgType( 2,   0,   0x10, 0x10101010 ),
+  NetMsgType( 2,   1,   0x11, 0x11111111 ),
+  NetMsgType( 2,   2,   0x12, 0x12121212 ),
+  NetMsgType( 2,   3,   0x13, 0x13131313 ),
+  NetMsgType( 3,   0,   0x10, 0x10101010 ),
+  NetMsgType( 3,   1,   0x11, 0x11111111 ),
+  NetMsgType( 3,   2,   0x12, 0x12121212 ),
+  NetMsgType( 3,   3,   0x13, 0x13131313 ),
+]
+
+src_comb_to_des = [
+  NetMsgType( 0,   0,   0x10, 0x10101010 ),
+  NetMsgType( 1,   0,   0x11, 0x11111111 ),
+  NetMsgType( 2,   0,   0x12, 0x12121212 ),
+  NetMsgType( 3,   0,   0x13, 0x13131313 ),
+  NetMsgType( 0,   1,   0x10, 0x10101010 ),
+  NetMsgType( 1,   1,   0x11, 0x11111111 ),
+  NetMsgType( 2,   1,   0x12, 0x12121212 ),
+  NetMsgType( 3,   1,   0x13, 0x13131313 ),
+  NetMsgType( 0,   2,   0x10, 0x10101010 ),
+  NetMsgType( 1,   2,   0x11, 0x11111111 ),
+  NetMsgType( 2,   2,   0x12, 0x12121212 ),
+  NetMsgType( 3,   2,   0x13, 0x13131313 ),
+  NetMsgType( 0,   3,   0x10, 0x10101010 ),
+  NetMsgType( 1,   3,   0x11, 0x11111111 ),
+  NetMsgType( 2,   3,   0x12, 0x12121212 ),
+  NetMsgType( 3,   3,   0x13, 0x13131313 ),
+] 
+
+
+random_msg = []
+
+# generate random messages
+for i in range(200):
+  src = random.randint(0,3)
+  dest = random.randint(0,3)
+  rand_payload = random.randint(0,0xffffffff)
+  random_msg.append( NetMsgType( src, dest, i, rand_payload ) )
 
 #-------------------------------------------------------------------------
 # Test Case Table
 #-------------------------------------------------------------------------
 
 test_case_table = mk_test_case_table([
-  (                                  "msgs    src_delay sink_delay delay_mode"),
-  [ "one",                            one,                 0,  0,  'fixed'  ],
-  [ "rotate0",                        rotate0,             0,  0,  'fixed'  ],
-  [ "rotate1",                        rotate1,             0,  0,  'fixed'  ],
-  [ "rotate2",                        rotate2,             0,  0,  'fixed'  ],
-  [ "rotate3",                        rotate3,             0,  0,  'fixed'  ],
-  [ "all_to_dest0",                   all_to_dest0,        0,  0,  'fixed'  ],
-  [ "all_to_dest1",                   all_to_dest1,        0,  0,  'fixed'  ],
-  [ "all_to_dest2",                   all_to_dest2,        0,  0,  'fixed'  ],
-  [ "all_to_dest3",                   all_to_dest3,        0,  0,  'fixed'  ],
-
-  #'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-])
+  (                                  "msgs            src_delay sink_delay delay_mode"),
+  [ "one",                            one,                 0,        0,     'fixed'  ],
+  [ "rotate0",                        rotate0,             0,        0,     'fixed'  ],
+  [ "rotate1",                        rotate1,             0,        0,     'fixed'  ],
+  [ "rotate2",                        rotate2,             0,        0,     'fixed'  ],
+  [ "rotate3",                        rotate3,             0,        0,     'fixed'  ],
+  [ "all_to_dest0",                   all_to_dest0,        0,        0,     'fixed'  ],
+  [ "all_to_dest1",                   all_to_dest1,        0,        0,     'fixed'  ],
+  [ "all_to_dest2",                   all_to_dest2,        0,        0,     'fixed'  ],
+  [ "all_to_dest3",                   all_to_dest3,        0,        0,     'fixed'  ],
+  [ "src1_to_all_dest",               src1_to_all_dest,    0,        0,     'fixed'  ],
+  [ "src2_to_all_dest",               src2_to_all_dest,    0,        0,     'fixed'  ],
+  [ "src3_to_all_dest",               src3_to_all_dest,    0,        0,     'fixed'  ],
+  [ "src_to_des_comb",                src_to_des_comb,     0,        0,     'fixed'  ],
+  [ "src_comb_to_des",                src_comb_to_des,     0,        0,     'fixed'  ],
+  [ "random",                         random_msg,          0,        0,     'fixed'  ],
+  [ "random_src_delay",               random_msg,          6,        0,     'fixed'  ],
+  [ "random_dst_delay",               random_msg,          0,        7,     'fixed'  ],
+  [ "random_both_delay",              random_msg,          6,        7,     'fixed'  ],
+  [ "random_rand_delay",              random_msg,          6,        7,     'random' ],
+])    
 
 #-------------------------------------------------------------------------
 # test

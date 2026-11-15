@@ -42,9 +42,127 @@ module lab4_sys_Net
   logic                   channels_ccw_val [4];
   logic                   channels_ccw_rdy [4];
 
-  //''' LAB TASK '''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-  // Implement ring network with four routers
-  //''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+  lab4_sys_NetRouter
+  #(
+    .p_msg_nbits (p_msg_nbits)
+  )
+  router0
+  (
+    .clk(clk),            
+    .reset(reset),          
+    .router_id(2'd0),    
+    .istream_msg({istream_msg[0], channels_ccw_msg[0], channels_cw_msg[3]}),
+    .istream_val({istream_val[0], channels_ccw_val[0], channels_cw_val[3]}),
+    .istream_rdy({istream_rdy[0], channels_ccw_rdy[0], channels_cw_rdy[3]}),
+    .ostream_msg({ostream_msg[0], channels_cw_msg[0], channels_ccw_msg[3]}),
+    .ostream_val({ostream_val[0], channels_cw_val[0], channels_ccw_val[3]}),
+    .ostream_rdy({ostream_rdy[0], channels_cw_rdy[0], channels_ccw_rdy[3]})
+  );
+
+  lab4_sys_NetRouter
+  #(
+    .p_msg_nbits (p_msg_nbits)
+  )
+  router1
+  (
+    .clk(clk),            
+    .reset(reset),          
+    .router_id(2'd1),    
+    .istream_msg({istream_msg[1], channels_ccw_msg[1], channels_cw_msg[0]}),
+    .istream_val({istream_val[1], channels_ccw_val[1], channels_cw_val[0]}),
+    .istream_rdy({istream_rdy[1], channels_ccw_rdy[1], channels_cw_rdy[0]}),
+    .ostream_msg({ostream_msg[1], channels_cw_msg[1], channels_ccw_msg[0]}),
+    .ostream_val({ostream_val[1], channels_cw_val[1], channels_ccw_val[0]}),
+    .ostream_rdy({ostream_rdy[1], channels_cw_rdy[1], channels_ccw_rdy[0]})
+  );
+
+  lab4_sys_NetRouter
+  #(
+    .p_msg_nbits (p_msg_nbits)
+  )
+  router2
+  (
+    .clk(clk),            
+    .reset(reset),          
+    .router_id(2'd2),    
+    .istream_msg({istream_msg[2], channels_ccw_msg[2], channels_cw_msg[1]}),
+    .istream_val({istream_val[2], channels_ccw_val[2], channels_cw_val[1]}),
+    .istream_rdy({istream_rdy[2], channels_ccw_rdy[2], channels_cw_rdy[1]}),
+    .ostream_msg({ostream_msg[2], channels_cw_msg[2], channels_ccw_msg[1]}),
+    .ostream_val({ostream_val[2], channels_cw_val[2], channels_ccw_val[1]}),
+    .ostream_rdy({ostream_rdy[2], channels_cw_rdy[2], channels_ccw_rdy[1]})
+  );
+
+  lab4_sys_NetRouter
+  #(
+    .p_msg_nbits (p_msg_nbits)
+  )
+  router3
+  (
+    .clk(clk),            
+    .reset(reset),          
+    .router_id(2'd3),    
+    .istream_msg({istream_msg[3], channels_ccw_msg[3], channels_cw_msg[2]}),
+    .istream_val({istream_val[3], channels_ccw_val[3], channels_cw_val[2]}),
+    .istream_rdy({istream_rdy[3], channels_ccw_rdy[3], channels_cw_rdy[2]}),
+    .ostream_msg({ostream_msg[3], channels_cw_msg[3], channels_ccw_msg[2]}),
+    .ostream_val({ostream_val[3], channels_cw_val[3], channels_ccw_val[2]}),
+    .ostream_rdy({ostream_rdy[3], channels_cw_rdy[3], channels_ccw_rdy[2]})
+  );  
+
+
+  // lab4_sys_NetRouter router0
+  // (
+  //   .clk(clk),            
+  //   .reset(reset),          
+  //   .router_id(2'd0),    
+  //   .istream_msg({istream_msg[0], channels_ccw_msg[0], channels_cw_msg[3]}),
+  //   .istream_val({istream_val[0], channels_ccw_val[0], channels_cw_val[3]}),
+  //   .istream_rdy({istream_rdy[0], channels_ccw_rdy[0], channels_cw_rdy[3]}),
+  //   .ostream_msg({ostream_msg[0], channels_cw_msg[0], channels_ccw_msg[3]}),
+  //   .ostream_val({ostream_val[0], channels_cw_val[0], channels_ccw_val[3]}),
+  //   .ostream_rdy({ostream_rdy[0], channels_cw_rdy[0], channels_ccw_val[3]})
+  // );
+
+  // lab4_sys_NetRouter router1
+  // (
+  //   .clk(clk),            
+  //   .reset(reset),          
+  //   .router_id(2'd1),    
+  //   .istream_msg({istream_msg[1], channels_ccw_msg[1], channels_cw_msg[0]}),
+  //   .istream_val({istream_val[1], channels_ccw_val[1], channels_cw_val[0]}),
+  //   .istream_rdy({istream_rdy[1], channels_ccw_rdy[1], channels_cw_rdy[0]}),
+  //   .ostream_msg({ostream_msg[1], channels_cw_msg[1], channels_ccw_msg[0]}),
+  //   .ostream_val({ostream_val[1], channels_cw_val[1], channels_ccw_val[0]}),
+  //   .ostream_rdy({ostream_rdy[1], channels_cw_rdy[1], channels_ccw_val[0]})
+  // );
+
+  // lab4_sys_NetRouter router2
+  // (
+  //   .clk(clk),            
+  //   .reset(reset),          
+  //   .router_id(2'd2),    
+  //   .istream_msg({istream_msg[2], channels_ccw_msg[2], channels_cw_msg[1]}),
+  //   .istream_val({istream_val[2], channels_ccw_val[2], channels_cw_val[1]}),
+  //   .istream_rdy({istream_rdy[2], channels_ccw_rdy[2], channels_cw_rdy[1]}),
+  //   .ostream_msg({ostream_msg[2], channels_cw_msg[2], channels_ccw_msg[1]}),
+  //   .ostream_val({ostream_val[2], channels_cw_val[2], channels_ccw_val[1]}),
+  //   .ostream_rdy({ostream_rdy[2], channels_cw_rdy[2], channels_ccw_val[1]})
+  // );
+
+  // lab4_sys_NetRouter router3
+  // (
+  //   .clk(clk),            
+  //   .reset(reset),          
+  //   .router_id(2'd3),    
+  //   .istream_msg({istream_msg[3], channels_ccw_msg[3], channels_cw_msg[2]}),
+  //   .istream_val({istream_val[3], channels_ccw_val[3], channels_cw_val[2]}),
+  //   .istream_rdy({istream_rdy[3], channels_ccw_rdy[3], channels_cw_rdy[2]}),
+  //   .ostream_msg({ostream_msg[3], channels_cw_msg[3], channels_ccw_msg[2]}),
+  //   .ostream_val({ostream_val[3], channels_cw_val[3], channels_ccw_val[2]}),
+  //   .ostream_rdy({ostream_rdy[3], channels_cw_rdy[3], channels_ccw_val[2]})
+  // );  
 
   //----------------------------------------------------------------------
   // Line Tracing
